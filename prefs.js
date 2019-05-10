@@ -1,8 +1,26 @@
+function getParameters() {
+    var prmstr = window.location.search.substr(1);
+    return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+}
+
+function transformToAssocArray( prmstr ) {
+    var params = {};
+    var prmarr = prmstr.split("&");
+    for ( var i = 0; i < prmarr.length; i++) {
+        var tmparr = prmarr[i].split("=");
+        params[tmparr[0]] = tmparr[1];
+    }
+    return params;
+}
+
 function Prefs () {
 
 	  this.init = function () {
-		    this.isAr = false;
-		    this.isLight = false;
+
+        var p = getParameters();
+
+		    this.isAr = p.isAr === 'true' || false;
+		    this.isLight = p.isLight === 'true' || false;
 		    this.is24HourFormat = false;
 
 		    this.latitude = 25.285447;
