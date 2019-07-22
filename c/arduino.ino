@@ -1,3 +1,6 @@
+#include <LiquidCrystal.h>
+#include <Time.h>
+
 #define TIME_FORMAT      TIME_12
 #define CALC_METHOD      QATAR
 #define ASR_JURISTIC     SHAFII
@@ -12,7 +15,6 @@
 #define START_HOUR   1
 #define START_MINUTE 48
 
-#include <LiquidCrystal.h>
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 7;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #define PRINT  Serial.print
@@ -22,9 +24,6 @@ prayer_time *pt;
 short pt_times[PT_TIMES_ALL_LEN];
 byte nxt;
 byte real_nxt;
-
-int y, m, d;
-int h, min, h_base, min_base;
 
 const char *TIMES_NAMES[] = { "FAJR",
                               "FAJR_IQAMA",
@@ -39,26 +38,13 @@ const char *TIMES_NAMES[] = { "FAJR",
                               "ISHA",
                               "ISHA_IQAMA" };
 
-void setup_time() {
-  y = START_YEAR;
-  m = START_MONTH;
-  d = START_DAY;
-  h = h_base = START_HOUR;
-  min = min_base = START_MINUTE;
-  pt->time_now = h * 60 + min;
+void update_time() {
+  pt->time_now = hour() * 60 + minute();
 }
 
-void update_time() {
-  h = pt->time_now / 60;
-  min = min_base + millis() / 60000;
-  if (min == 60) {
-    min = 0;
-    ++h;
-    if (h == 25) {
-      h = 0;
-    }
-  }
-  pt->time_now = h * 60 + min;
+void setup_time() {
+  setTime(START_HOUR, START_MINUTE, 60, START_DAY, START_MONTH, START_YEAR);
+  update_time();
 }
 
 #define ARDUINO_PRINT_TIME(s, t, format) {      \
@@ -78,7 +64,7 @@ void update() {
   update_time();
 
   if (pt->time_now == 0) { // if new day
-    calculate_for_date(pt, y, m, d);
+    calculate_for_date(pt, year(), month(), day());
   }
 
   real_nxt = get_next_time(pt, pt->time_now);
@@ -88,6 +74,12 @@ void update() {
 
   Serial.print("TIME\t\t");
   ARDUINO_PRINT_TIME(Serial, pt->time_now, TIME_FORMAT);
+  Serial.print(" ");
+  Serial.print(year());
+  Serial.print("-");
+  Serial.print(month());
+  Serial.print("-");
+  Serial.print(day());
   Serial.println('\n');
 
   lcd.setCursor(0, 0);
@@ -142,7 +134,8 @@ void setup() {
 
   update_time();
 
-  calculate_for_full(pt, y, m, d, LAT, LNG, TIMEZONE);
+  calculate_for_full(pt, year(), month(), day(),
+                     LAT, LNG, TIMEZONE);
 
   update();
 
