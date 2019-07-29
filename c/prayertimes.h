@@ -5,22 +5,22 @@
 
 /* DEFINITIONS -------------------------------------------------- */
 
-/* Juristic Methods */
+/* Juristic Methods --- */
 #define SHAFII 0 /* Shafii (standard) */
 #define HANAFI 1 /* Hanafi */
 
-/* Adjusting Methods for Higher Latitudes */
+/* Adjusting Methods for Higher Latitudes --- */
 #define NONE        0 /* No adjustment */
 #define MIDNIGHT    1 /* middle of night */
 #define ONE_SEVENTH 2 /* 1/7th of night */
 #define ANGLE_BASED 3 /* angle/60th of night */
 
-/* Time Formats */
+/* Time Formats --- */
 #define TIME_24    0 /* 24-hour format */
 #define TIME_12    1 /* 12-hour format */
 #define TIME_12_NS 2 /* 12-hour format with no suffix */
 
-/* times indices */
+/* Times Indices --- */
 #define FAJR          0
 #define FAJR_IQAMA    1
 #define SUNRISE       2
@@ -34,7 +34,7 @@
 #define ISHA         10
 #define ISHA_IQAMA   11
 
-/* Calculation Methods */
+/* Calculation Methods --- */
 #define KARACHI             0 /* University of Islamic Sciences, Karachi */
 #define ISNA                1 /* Islamic Society of North America (ISNA) */
 #define MWL                 2 /* Muslim World League (MWL) */
@@ -50,12 +50,12 @@
 #define GERMANY_MUNCHEN    12 /* Germany, Islamic Center of Munich */
 #define GERMANY_AACHEN     13 /* Germany, Islamic Center of Aachen */
 
-/* Other Stuff */
+/* Other Stuff --- */
 #define PT_TIMES_CALC_LEN 7
 #define PT_TIMES_ALL_LEN 12
 #define PT_TIMES_IQAMA_LEN 5
 
-/* Looping */
+/* Looping --- */
 #define PRAY_TIMES_ONLY_LEN 5
 #define PRAY_TIMES_ONLY { FAJR, DUHR, ASR, MAGRIB, ISHA }
 
@@ -63,8 +63,7 @@
 #define SIMPLE_TIMES { FAJR, SUNRISE, DUHR, ASR, MAGRIB, ISHA }
 
 #define SIMPLE_TIMES_WITH_IQAMA_LEN 11
-#define SIMPLE_TIMES_WITH_IQAMA { FAJR, FAJR_IQAMA, SUNRISE, DUHR, DUHR_IQAMA, ASR, \
-                                  ASR_IQAMA, MAGRIB, MAGRIB_IQAMA, ISHA, ISHA_IQAMA }
+#define SIMPLE_TIMES_WITH_IQAMA { FAJR, FAJR_IQAMA, SUNRISE, DUHR, DUHR_IQAMA, ASR, ASR_IQAMA, MAGRIB, MAGRIB_IQAMA, ISHA, ISHA_IQAMA }
 
 #define FOR_PRAYER(var, type, body) {           \
     static byte __arr[] = type;                 \
@@ -78,7 +77,7 @@
 
 typedef unsigned char byte;
 
-/* METHOD STRUCT ------------------------------------------------ */
+/* STRUCTS ------------------------------------------------------ */
 
 typedef struct {
   float fajr_angle;
@@ -88,12 +87,9 @@ typedef struct {
   float isha_val;
 } method;
 
-/* MAIN STRUCT -------------------------------------------------- */
-
 typedef struct {
 
-  /* public -------------------- */
-  method *calc_method; // calculation method
+  method calc_method; // calculation method
   byte asr_juristic; // Juristic method for Asr
   byte dhuhr_minutes; // minutes after mid-day for Dhuhr
   byte adjust_high_lats; // adjusting method for higher latitudes
@@ -105,34 +101,33 @@ typedef struct {
   short offsets[PT_TIMES_CALC_LEN];
   short iqama[PT_TIMES_ALL_LEN]; // iqama after {fajr, duhr, asr, magrib, isha} minutes
 
+} prayer_opts;
+
+typedef struct {
+
+  /* public -------------------- */
+  prayer_opts opts;
+  short times[PT_TIMES_ALL_LEN];
+
   /* private ------------------- */
   double j_date; // Julian date
-  short times[PT_TIMES_ALL_LEN]; // cached times
   double equation_of_time;
   double sun_declination;
-  short time_now;
 
 } prayer_time;
 
 /* PROTOTYPES --------------------------------------------------- */
 
-void         init_methods();
-prayer_time *prayer_time_new();
-method      *int_to_method(int i);
-void         calculate_for_full(prayer_time *self, int year, int month, int day, double latitude, double longitude, double t_zone);
-void         calculate_for_date(prayer_time *self, int year, int month, int day);
+prayer_time* prayer_time_new();
+method       int_to_method(int i);
+void         calculate_for(prayer_time* self, int year, int month, int day);
 byte         closest_index(byte i);
 byte         iqama_index(byte i);
-byte         get_next_time(prayer_time *self, short now);
-bool         is_praying_time(prayer_time *self, short now, bool or_iqama);
-void         tune(prayer_time *self, int fajr, int sunrise, int duhr, int asr, int sunset, int magrib, int isha);
-void         set_custom_method(prayer_time *self, method *m);
-void         set_fajr_angle(prayer_time *self, float angle);
-void         set_maghrib_angle(prayer_time *self, float angle);
-void         set_isha_angle(prayer_time *self, float angle);
-void         set_maghrib_minutes(prayer_time *self, float minutes);
-void         set_isha_minutes(prayer_time *self, float minutes);
+byte         get_next_time(prayer_time* self, short now);
+bool         is_praying_time(prayer_time* self, short now, bool or_iqama);
 short        create_time(int h, int m);
-short        get_short_next_remaining(prayer_time *self, short now, byte next);
+short        get_short_next_remaining(prayer_time* self, short now, byte next);
+short        get_time(prayer_time* self, byte i);
+void         set_opts(prayer_time*, byte, float, bool, float, bool, float, byte, byte, byte, double, double, double, short, short, short, short, short, short, short, short, short, short, short, short);
 
 #endif /* PRAYERTIMES_H_ */

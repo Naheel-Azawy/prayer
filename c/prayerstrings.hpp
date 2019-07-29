@@ -29,7 +29,7 @@ typedef struct {
   string str_and;
 } prayer_strings;
 
-prayer_strings *prayer_strings_new(prayer_time *pt);
+prayer_strings* prayer_strings_new(prayer_time *pt);
 void            init_strings(prayer_strings *self);
 string          get_times_name_simple_lower_case(int i);
 string          time_to_string_full(short hours, short minutes, byte time_format, bool is_ar);
@@ -39,15 +39,14 @@ string          time_to_string_short_time_format(prayer_strings *self, short tim
 void            get_string_times(prayer_strings *self, string *out);
 string          get_string_time(prayer_strings *self, byte i);
 string          get_remaining_time_string(prayer_strings *self, short now, byte i, byte next);
-string          get_next_with_remaining_string(prayer_strings *self);
-void            get_next_with_remaining_two_string(prayer_strings *self, string *out);
+string          get_next_with_remaining_string(prayer_strings *self, short now);
+void            get_next_with_remaining_two_string(prayer_strings *self, short now, string *out);
 void            get_next_with_remaining_two_string(prayer_strings *self, string *out, short now, byte next);
 string          get_small_next_remaining_full(prayer_strings *self, short now, byte next, char sep);
 string          get_small_next_remaining(prayer_strings *self, short now, byte next);
-string          get_remaining_time_string(prayer_strings *self);
 string          get_remaining_time_string(prayer_strings *self, short now);
 string          get_remaining_time_string(prayer_strings *self, short now, byte i);
-string          get_small_next_remaining_now(prayer_strings *self);
+string          get_small_next_remaining(prayer_strings *self, short now);
 string          get_one_line_small_next_remaining(prayer_strings *self, short now, byte next);
 
 #endif /* PRAYER_STRINGS_H_ */

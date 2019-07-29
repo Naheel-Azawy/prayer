@@ -25,23 +25,31 @@ method METHODS[] = {{18,   true, 0, false, 18},   /*  1 KARACHI            */
 
 #define NUM_ITERATIONS 1 /* number of iterations needed to compute times */
 
-method *int_to_method(int i) {
-  return &METHODS[i];
+method int_to_method(int i) {
+  return METHODS[i];
 }
 
 prayer_time *prayer_time_new() {
   prayer_time *n = (prayer_time *) malloc(sizeof(prayer_time));
 
-  n->calc_method = int_to_method(MAKKAH);
-  n->asr_juristic = SHAFII;
-  n->dhuhr_minutes = 0;
-  n->adjust_high_lats = ANGLE_BASED;
+  n->opts.calc_method = int_to_method(MAKKAH);
+  n->opts.asr_juristic = SHAFII;
+  n->opts.dhuhr_minutes = 0;
+  n->opts.adjust_high_lats = ANGLE_BASED;
 
-  n->iqama[0] = 25;
-  n->iqama[1] = 20;
-  n->iqama[2] = 25;
-  n->iqama[3] = 10;
-  n->iqama[4] = 20;
+  n->opts.offsets[0] = 0;
+  n->opts.offsets[1] = 0;
+  n->opts.offsets[2] = 0;
+  n->opts.offsets[3] = 0;
+  n->opts.offsets[4] = 0;
+  n->opts.offsets[5] = 0;
+  n->opts.offsets[6] = 0;
+
+  n->opts.iqama[0] = 25;
+  n->opts.iqama[1] = 20;
+  n->opts.iqama[2] = 25;
+  n->opts.iqama[3] = 10;
+  n->opts.iqama[4] = 20;
 
   return n;
 }
@@ -158,8 +166,8 @@ static double compute_time(prayer_time *self, double G, double t) {
   calc_sun_position(self, self->j_date + t);
   double D = self->sun_declination;
   double Z = compute_mid_day(self);
-  double Beg = -dsin(G) - dsin(D) * dsin(self->lat);
-  double Mid = dcos(D) * dcos(self->lat);
+  double Beg = -dsin(G) - dsin(D) * dsin(self->opts.lat);
+  double Mid = dcos(D) * dcos(self->opts.lat);
   double V = darccos(Beg / Mid) / 15.0;
   return Z + (G > 90 ? -V : V);
 }
@@ -169,7 +177,7 @@ static double compute_time(prayer_time *self, double G, double t) {
 static double compute_asr(prayer_time *self, double step, double t) {
   calc_sun_position(self, self->j_date + t);
   double D = self->sun_declination;
-  double G = -darccot(step + dtan(fabs(self->lat - D)));
+  double G = -darccot(step + dtan(fabs(self->opts.lat - D)));
   return compute_time(self, G, t);
 }
 
@@ -191,14 +199,14 @@ static void day_portion(double *times) {
 // compute prayer times at given julian date
 static void compute_times(prayer_time *self, double *times) {
   day_portion(times);
-  double Fajr = compute_time(self, 180 - self->calc_method->fajr_angle, times[0]);
+  double Fajr = compute_time(self, 180 - self->opts.calc_method.fajr_angle, times[0]);
   double Sunrise = compute_time(self, 180 - 0.833, times[1]);
   calc_sun_position(self, self->j_date + times[2]);
   double Dhuhr = compute_mid_day(self);
-  double Asr = compute_asr(self, 1 + self->asr_juristic, times[3]);
+  double Asr = compute_asr(self, 1 + self->opts.asr_juristic, times[3]);
   double Sunset = compute_time(self, 0.833, times[4]);
-  double Maghrib = compute_time(self, self->calc_method->magrib_val, times[5]);
-  double Isha = compute_time(self, self->calc_method->isha_val, times[6]);
+  double Maghrib = compute_time(self, self->opts.calc_method.magrib_val, times[5]);
+  double Isha = compute_time(self, self->opts.calc_method.isha_val, times[6]);
 
   times[0] = Fajr;
   times[1] = Sunrise;
@@ -224,11 +232,11 @@ static short float_to_minutes_short(double time) {
 // the night portion used for adjusting times in higher latitudes
 static double night_portion(prayer_time *self, double angle) {
   double calc = 0;
-  if (self->adjust_high_lats == ANGLE_BASED)
+  if (self->opts.adjust_high_lats == ANGLE_BASED)
     calc = (angle) / 60.0;
-  else if (self->adjust_high_lats == MIDNIGHT)
+  else if (self->opts.adjust_high_lats == MIDNIGHT)
     calc = 0.5;
-  else if (self->adjust_high_lats == ONE_SEVENTH)
+  else if (self->opts.adjust_high_lats == ONE_SEVENTH)
     calc = 0.14286;
   return calc;
 }
@@ -237,21 +245,21 @@ static double night_portion(prayer_time *self, double angle) {
 static void adjust_high_lat_times(prayer_time *self, double *times) {
   double night_time = time_diff(times[4], times[1]); // sunset to sunrise
 
-  double FajrDiff = night_portion(self, self->calc_method->fajr_angle) * night_time;
+  double FajrDiff = night_portion(self, self->opts.calc_method.fajr_angle) * night_time;
 
   if (isnan(times[0]) || time_diff(times[0], times[1]) > FajrDiff) {
     times[0] = times[1] - FajrDiff;
   }
 
   // Adjust Isha
-  double IshaAngle = (self->calc_method->isha_is_minuets) ? self->calc_method->isha_val : 18;
+  double IshaAngle = (self->opts.calc_method.isha_is_minuets) ? self->opts.calc_method.isha_val : 18;
   double IshaDiff = night_portion(self, IshaAngle) * night_time;
   if (isnan(times[6]) || time_diff(times[4], times[6]) > IshaDiff) {
     times[6] = times[4] + IshaDiff;
   }
 
   // Adjust Maghrib
-  double MaghribAngle = (self->calc_method->magrib_is_minuets) ? self->calc_method->magrib_val : 4;
+  double MaghribAngle = (self->opts.calc_method.magrib_is_minuets) ? self->opts.calc_method.magrib_val : 4;
   double MaghribDiff = night_portion(self, MaghribAngle) * night_time;
   if (isnan(times[5]) || time_diff(times[4], times[5]) > MaghribDiff) {
     times[5] = times[4] + MaghribDiff;
@@ -261,22 +269,22 @@ static void adjust_high_lat_times(prayer_time *self, double *times) {
 // adjust times in a prayer time array
 static void adjust_times(prayer_time *self, double *times) {
   for (int i = 0; i < PT_TIMES_CALC_LEN; i++) {
-    times[i] += self->time_zone - self->lng / 15;
+    times[i] += self->opts.time_zone - self->opts.lng / 15;
   }
 
-  times[2] += self->dhuhr_minutes / 60; // Dhuhr
-  if (self->calc_method->magrib_is_minuets) // Maghrib
-    times[5] = times[4] + self->calc_method->magrib_val / 60;
-  if (self->calc_method->isha_is_minuets) // Isha
-    times[6] = times[5] + self->calc_method->isha_val / 60;
+  times[2] += self->opts.dhuhr_minutes / 60; // Dhuhr
+  if (self->opts.calc_method.magrib_is_minuets) // Maghrib
+    times[5] = times[4] + self->opts.calc_method.magrib_val / 60;
+  if (self->opts.calc_method.isha_is_minuets) // Isha
+    times[6] = times[5] + self->opts.calc_method.isha_val / 60;
 
-  if (self->adjust_high_lats != NONE)
+  if (self->opts.adjust_high_lats != NONE)
     adjust_high_lat_times(self, times);
 }
 
 static void tune_times(prayer_time *self, double *times) {
   for (int i = 0; i < PT_TIMES_CALC_LEN; i++) {
-    times[i] = times[i] + self->offsets[i] / 60.0;
+    times[i] = times[i] + self->opts.offsets[i] / 60.0;
   }
 }
 
@@ -292,35 +300,27 @@ static void compute_day_times(prayer_time *self) {
   tune_times(self, times);
 
   self->times[FAJR] = float_to_minutes_short(times[0]);
-  self->times[FAJR_IQAMA] = (short) (self->times[FAJR] + self->iqama[0]);
+  self->times[FAJR_IQAMA] = (short) (self->times[FAJR] + self->opts.iqama[0]);
   self->times[SUNRISE] = float_to_minutes_short(times[1]);
   self->times[DUHR] = float_to_minutes_short(times[2]);
-  self->times[DUHR_IQAMA] = (short) (self->times[DUHR] + self->iqama[1]);
+  self->times[DUHR_IQAMA] = (short) (self->times[DUHR] + self->opts.iqama[1]);
   self->times[ASR] = float_to_minutes_short(times[3]);
-  self->times[ASR_IQAMA] = (short) (self->times[ASR] + self->iqama[2]);
+  self->times[ASR_IQAMA] = (short) (self->times[ASR] + self->opts.iqama[2]);
   self->times[SUNSET] = float_to_minutes_short(times[4]);
   self->times[MAGRIB] = float_to_minutes_short(times[5]);
-  self->times[MAGRIB_IQAMA] = (short) (self->times[MAGRIB] + self->iqama[3]);
+  self->times[MAGRIB_IQAMA] = (short) (self->times[MAGRIB] + self->opts.iqama[3]);
   self->times[ISHA] = float_to_minutes_short(times[6]);
-  self->times[ISHA_IQAMA] = (short) (self->times[ISHA] + self->iqama[4]);
+  self->times[ISHA_IQAMA] = (short) (self->times[ISHA] + self->opts.iqama[4]);
 }
 
 /* -------------------- Interface Functions -------------------- */
 
 // setup prayer times
-void calculate_for_full(prayer_time *self, int year, int month, int day, double latitude, double longitude, double t_zone) {
-  self->lat = latitude;
-  self->lng = longitude;
-  self->time_zone = t_zone;
+void calculate_for(prayer_time *self, int year, int month, int day) {
   self->j_date = julian_date(year, month, day);
-  double lon_diff = longitude / (15.0 * 24.0);
+  double lon_diff = self->opts.lng / (15.0 * 24.0);
   self->j_date = self->j_date - lon_diff;
   compute_day_times(self);
-}
-
-// setup prayer times without changing the location
-void calculate_for_date(prayer_time *self, int year, int month, int day) {
-  calculate_for_full(self, year, month, day, self->lat, self->lng, self->time_zone);
 }
 
 byte closest_index(byte i) {
@@ -393,51 +393,6 @@ bool is_praying_time(prayer_time *self, short now, bool or_iqama) {
   return diff == 0;
 }
 
-// set time offsets
-void tune(prayer_time *self, int fajr, int sunrise, int duhr, int asr, int sunset, int magrib, int isha) {
-  self->offsets[0] = (short) fajr;
-  self->offsets[1] = (short) sunrise;
-  self->offsets[2] = (short) duhr;
-  self->offsets[3] = (short) asr;
-  self->offsets[4] = (short) sunset;
-  self->offsets[5] = (short) magrib;
-  self->offsets[6] = (short) isha;
-}
-
-// set the angle for calculating Fajr
-void set_fajr_angle(prayer_time *self, float angle) {
-  self->calc_method = int_to_method(CUSTOM);
-  METHODS[CUSTOM].fajr_angle = angle;
-}
-
-// set the angle for calculating Maghrib
-void set_maghrib_angle(prayer_time *self, float angle) {
-  self->calc_method = int_to_method(CUSTOM);
-  METHODS[CUSTOM].magrib_is_minuets = false;
-  METHODS[CUSTOM].magrib_val = angle;
-}
-
-// set the angle for calculating Isha
-void set_isha_angle(prayer_time *self, float angle) {
-  self->calc_method = int_to_method(CUSTOM);
-  METHODS[CUSTOM].isha_is_minuets = false;
-  METHODS[CUSTOM].isha_val = angle;
-}
-
-// set the minutes after Sunset for calculating Maghrib
-void set_maghrib_minutes(prayer_time *self, float minutes) {
-  self->calc_method = int_to_method(CUSTOM);
-  METHODS[CUSTOM].magrib_is_minuets = true;
-  METHODS[CUSTOM].magrib_val = minutes;
-}
-
-// set the minutes after Maghrib for calculating Isha
-void set_isha_minutes(prayer_time *self, float minutes) {
-  self->calc_method = int_to_method(CUSTOM);
-  METHODS[CUSTOM].isha_is_minuets = true;
-  METHODS[CUSTOM].isha_val = minutes;
-}
-
 short create_time(int h, int m) {
   return (short) (h * 60 + m);
 }
@@ -462,4 +417,69 @@ short get_short_next_remaining(prayer_time *self, short now, byte next) {
     diff += 31 * 60;
   }
   return diff;
+}
+
+short get_time(prayer_time *self, byte i) {
+  return self->times[i];
+}
+
+void set_opts(prayer_time *self,
+
+              byte calc_method, // calculation method
+              float fajr_angle,
+              bool magrib_is_minuets, // true = minutes after sunset, false = angle
+              float magrib_val,
+              bool isha_is_minuets, // true = minutes after sunset, false = angle
+              float isha_val,
+
+              byte asr_juristic, // Juristic method for Asr
+              byte dhuhr_minutes, // minutes after mid-day for Dhuhr
+              byte adjust_high_lats, // adjusting method for higher latitudes
+
+              double lat, // latitude
+              double lng, // longitude
+              double time_zone, // time-zone
+
+              short offset_fajr,
+              short offset_sunrise,
+              short offset_duhr,
+              short offset_asr,
+              short offset_sunset,
+              short offset_magrib,
+              short offset_isha,
+
+              short iqama_fajr,
+              short iqama_duhr,
+              short iqama_asr,
+              short iqama_magrib,
+              short iqama_isha) {
+
+  if (calc_method != (byte) -1) {
+    self->opts.calc_method = METHODS[calc_method];
+  } else {
+    self->opts.calc_method.fajr_angle = fajr_angle;
+    self->opts.calc_method.magrib_is_minuets = magrib_is_minuets;
+    self->opts.calc_method.magrib_val = magrib_val;
+    self->opts.calc_method.isha_is_minuets = isha_is_minuets;
+    self->opts.calc_method.isha_val = isha_val;
+  }
+  self->opts.asr_juristic = asr_juristic;
+  self->opts.dhuhr_minutes = dhuhr_minutes;
+  self->opts.adjust_high_lats = adjust_high_lats;
+  self->opts.lat = lat;
+  self->opts.lng = lng;
+  self->opts.time_zone = time_zone;
+  self->opts.offsets[0] = offset_fajr;
+  self->opts.offsets[1] = offset_sunrise;
+  self->opts.offsets[2] = offset_duhr;
+  self->opts.offsets[3] = offset_asr;
+  self->opts.offsets[4] = offset_sunset;
+  self->opts.offsets[5] = offset_magrib;
+  self->opts.offsets[6] = offset_isha;
+  self->opts.iqama[0] = iqama_fajr;
+  self->opts.iqama[1] = iqama_duhr;
+  self->opts.iqama[2] = iqama_asr;
+  self->opts.iqama[3] = iqama_magrib;
+  self->opts.iqama[4] = iqama_isha;
+
 }

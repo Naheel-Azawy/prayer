@@ -239,17 +239,17 @@ string get_remaining_time_string(prayer_strings *self, short now, byte i, byte n
   return s;
 }
 
-string get_next_with_remaining_string(prayer_strings *self) {
-  byte n = get_next_time(self->pt, self->pt->time_now);
+string get_next_with_remaining_string(prayer_strings *self, short now) {
+  byte n = get_next_time(self->pt, now);
   byte n2 = closest_index(n);
-  return self->times_names[n2] + "   " + time_to_string_short_time(self, self->pt->times[n2]) + "\n" + get_remaining_time_string(self, self->pt->time_now, (byte) -1, n);
+  return self->times_names[n2] + "   " + time_to_string_short_time(self, self->pt->times[n2]) + "\n" + get_remaining_time_string(self, now, (byte) -1, n);
 }
 
-void get_next_with_remaining_two_string(prayer_strings *self, string *out) {
-  byte n = get_next_time(self->pt, self->pt->time_now);
+void get_next_with_remaining_two_string(prayer_strings *self, short now, string *out) {
+  byte n = get_next_time(self->pt, now);
   byte n2 = closest_index(n);
   out[0] = self->times_names[n2] + "   " + time_to_string_short_time(self, self->pt->times[n2]);
-  out[1] = get_remaining_time_string(self, self->pt->time_now, (byte) -1, n);
+  out[1] = get_remaining_time_string(self, now, (byte) -1, n);
 }
 
 void get_next_with_remaining_two_string(prayer_strings *self, string *out, short now, byte next) {
@@ -288,10 +288,6 @@ string get_small_next_remaining(prayer_strings *self, short now, byte next) {
   return get_small_next_remaining_full(self, now, next, '\n');
 }
 
-string get_remaining_time_string(prayer_strings *self) {
-  return get_remaining_time_string(self, self->pt->time_now, (byte) -1, get_next_time(self->pt, self->pt->time_now));
-}
-
 string get_remaining_time_string(prayer_strings *self, short now) {
   return get_remaining_time_string(self, now, (byte) -1, get_next_time(self->pt, now));
 }
@@ -300,8 +296,8 @@ string get_remaining_time_string(prayer_strings *self, short now, byte i) {
   return get_remaining_time_string(self, now, i, get_next_time(self->pt, now));
 }
 
-string get_small_next_remaining_now(prayer_strings *self) {
-  return get_small_next_remaining(self, self->pt->time_now, get_next_time(self->pt, self->pt->time_now));
+string get_small_next_remaining(prayer_strings *self, short now) {
+  return get_small_next_remaining(self, now, get_next_time(self->pt, now));
 }
 
 string get_one_line_small_next_remaining(prayer_strings *self, short now, byte next) {

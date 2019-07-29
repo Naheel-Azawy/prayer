@@ -1,19 +1,13 @@
 #include <LiquidCrystal.h>
 #include <Time.h>
 
-#define TIME_FORMAT      TIME_12
-#define CALC_METHOD      QATAR
-#define ASR_JURISTIC     SHAFII
-#define ADJUST_HIGH_LATS ANGLE_BASED
-#define LAT              25.2899589
-#define LNG              51.4974742
-#define TIMEZONE         3
-
 #define START_YEAR   2019
 #define START_MONTH  7
 #define START_DAY    21
 #define START_HOUR   1
 #define START_MINUTE 48
+
+#define TIME_FORMAT TIME_12
 
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 7;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
@@ -22,6 +16,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 prayer_time *pt;
 short pt_times[PT_TIMES_ALL_LEN];
+short time_now;
 byte nxt;
 byte real_nxt;
 
@@ -38,18 +33,9 @@ const char *TIMES_NAMES[] = { "FAJR",
                               "ISHA",
                               "ISHA_IQAMA" };
 
-void update_time() {
-  pt->time_now = hour() * 60 + minute();
-}
-
-void setup_time() {
-  setTime(START_HOUR, START_MINUTE, 60, START_DAY, START_MONTH, START_YEAR);
-  update_time();
-}
-
 #define ARDUINO_PRINT_TIME(s, t, format) {      \
     short _h = t / 60, _m = t % 60, _p = 0;     \
-    if (format == TIME_12 && _h >= 12)          \
+    if (format == TIME_12 && _h > 12)           \
       _p = 1, _h -= 12;                         \
     if (_h < 10) s.print('0');                  \
     s.print(_h);                                \
@@ -61,19 +47,19 @@ void setup_time() {
   }
 
 void update() {
-  update_time();
+  time_now = hour() * 60 + minute();
 
-  if (pt->time_now == 0) { // if new day
-    calculate_for_date(pt, year(), month(), day());
+  if (time_now == 0) { // if new day
+    calculate_for(pt, year(), month(), day());
   }
 
-  real_nxt = get_next_time(pt, pt->time_now);
+  real_nxt = get_next_time(pt, time_now);
   nxt = closest_index(real_nxt);
 
 #define PRINT_BOTH(s) Serial.print(s); lcd.print(s);
 
   Serial.print("TIME\t\t");
-  ARDUINO_PRINT_TIME(Serial, pt->time_now, TIME_FORMAT);
+  ARDUINO_PRINT_TIME(Serial, time_now, TIME_FORMAT);
   Serial.print(" ");
   Serial.print(year());
   Serial.print("-");
@@ -83,7 +69,7 @@ void update() {
   Serial.println('\n');
 
   lcd.setCursor(0, 0);
-  ARDUINO_PRINT_TIME(lcd, pt->time_now, TIME_FORMAT);
+  ARDUINO_PRINT_TIME(lcd, time_now, TIME_FORMAT);
   lcd.print(' ');
 
   short nxt_time;
@@ -96,7 +82,7 @@ void update() {
         lcd.print(TIMES_NAMES[p][0]);
         ARDUINO_PRINT_TIME(lcd, pt->times[p], TIME_FORMAT);
         lcd.setCursor(0, 1);
-        nxt_time = get_short_next_remaining(pt, pt->time_now, real_nxt);
+        nxt_time = get_short_next_remaining(pt, time_now, real_nxt);
         if (nxt_time / 60 == 30) {
           PRINT_BOTH(TIMES_NAMES[nxt_time % 60]);
           PRINT_BOTH(" TIME");
@@ -119,23 +105,23 @@ void update() {
 
 }
 
+
 void setup() {
 
   Serial.begin(9600);
   lcd.begin(16, 2);
+  setTime(START_HOUR, START_MINUTE, 60, START_DAY, START_MONTH, START_YEAR);
 
   pt = prayer_time_new();
-  setup_time();
 
-  pt->calc_method = int_to_method(CALC_METHOD);
-  pt->asr_juristic = ASR_JURISTIC;
-  pt->adjust_high_lats = ADJUST_HIGH_LATS;
-  tune(pt, 0, 0, 0, 0, 0, 0, 0);
+  pt->opts.calc_method      = int_to_method(QATAR);
+  pt->opts.asr_juristic     = SHAFII;
+  pt->opts.adjust_high_lats = ANGLE_BASED;
+  pt->opts.lat              = 25.2899589;
+  pt->opts.lng              = 51.4974742;
+  pt->opts.time_zone        = 3;
 
-  update_time();
-
-  calculate_for_full(pt, year(), month(), day(),
-                     LAT, LNG, TIMEZONE);
+  calculate_for(pt, year(), month(), day());
 
   update();
 
