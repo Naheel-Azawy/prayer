@@ -2,6 +2,8 @@ const readline = require('readline');
 const fs       = require('fs');
 const print    = s => console.log(s);
 
+const VARNAME = "pt";
+
 function replace_type(type) {
     return type
         .replace("char*",  "string")
@@ -23,13 +25,23 @@ function add_def(line) {
     if (line.startsWith("#define") &&
         !line.includes("_LEN") &&
         !line.includes("_H_") &&
-        !line.includes(") {")) {
+        !line.includes(") {") &&
+        !line.includes("{ ")) {
 
-        line = line.replace("#define", "var")
+        line = line.replace("#define", "")
             .replace("{", "[").replace("}", "]")
             .split(" ");
-        line.splice(2, 0, "=");
-        line = line.join(" ") + ";";
+        line.splice(2, 0, ":");
+        line = "   " + line.join(" ");
+
+        if (line.includes("[")) {
+            line = line.split("[");
+            line[1] = line[1].replace("]", "").trim().split(",");
+            for (let i in line[1]) {
+                line[1][i] = `${VARNAME}.${line[1][i].trim()}`;
+            }
+            line = `${line[0]}[ ${line[1].join(", ")} ]`;
+        }
 
         defs.push(line);
     }
@@ -50,7 +62,7 @@ function add_func(line) {
             params[i] = `"${replace_type(params[i].split(" ")[0])}"`;
         }
         cc_exported.push(`"_${name}"`);
-        funcs.push(`var ${name} = Module.cwrap('${name}', '${ret}', [${params.join(',')}]);`);
+        funcs.push(`    ${name}: Module.cwrap('${name}', '${ret}', [${params.join(',')}])`);
 
     }
 }
@@ -61,9 +73,9 @@ for (let line of fs.readFileSync("prayertimes.h", 'utf-8').split('\n')) {
 }
 
 cc_exported = `[${cc_exported.join(',')}]`;
-defs = defs.join("\n");
-funcs = funcs.join("\n");
+defs = defs.join(",\n");
+funcs = funcs.join(",\n");
 
 fs.writeFileSync("js/cc-exported", cc_exported);
-fs.writeFileSync("js/prayertimes.h.js", defs + '\n' + funcs);
+fs.writeFileSync("js/prayertimes.h.js", `var ${VARNAME} = {\n${defs},\n\n${funcs}\n};`);
 
