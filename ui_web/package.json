@@ -1,0 +1,39 @@
+{
+    "name": "prayer",
+    "version": "1.0.0",
+    "description": "",
+    "main": "main.js",
+    "scripts": {
+        "build": "webpack",
+        "build:prod": "webpack --env production",
+        "watch": "webpack -w",
+        "start": "http-server -p 9090 ../build/web"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Naheel-Azawy/prayer.git"
+    },
+    "keywords": [
+        "muslim",
+        "prayer"
+    ],
+    "author": "Naheel-Azawy",
+    "license": "GPL-3.0",
+    "bugs": {
+        "url": "https://github.com/Naheel-Azawy/prayer/issues"
+    },
+    "homepage": "https://github.com/Naheel-Azawy/prayer#readme",
+    "devDependencies": {
+        "hijrah-date": "^1.0.3",
+        "css-loader": "*",
+        "elemobj": "*",
+        "html-webpack-plugin": "*",
+        "http-server": "*",
+        "style-loader": "*",
+        "url-loader": "*",
+        "webpack": "*",
+        "webpack-bundle-analyzer": "*",
+        "webpack-cli": "*",
+        "webpack-pwa-manifest": "*"
+    }
+}

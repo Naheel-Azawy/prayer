@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme" parent="@android:style/Theme.Holo">
+        <item name="android:colorBackground">@android:color/black</item>
+    </style>
+</resources>

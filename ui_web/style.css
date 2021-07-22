@@ -1,0 +1,205 @@
+
+/* === base theme === */
+
+:root {
+    --window-background: #000000;
+    --primary-background: #ffc107;
+    --primary-foreground: #000000;
+    --base-background: #111111;
+    --base-foreground: #ffffff;
+    --ripple-background: white;
+}
+
+.light {
+    --window-background: #f5f5f5;
+    --primary-background: #ffc107;
+    --primary-foreground: #000000;
+    --base-background: #fefefe;
+    --base-foreground: #000000;
+    --ripple-background: black;
+}
+
+body {
+    background: var(--window-background);
+    color: var(--base-foreground);
+    font-family: sans-serif;
+}
+
+.main-container {
+    max-width: 600px;
+    margin: auto;
+}
+
+/* === cards === */
+
+.button-card, .card {
+    background: var(--base-background);
+    color: var(--base-foreground);
+    border: 0px;
+    border-radius: 15px;
+    padding: 0.75em;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-size: 1em;
+    outline: none;
+    user-select: none;
+    min-height: 0px;
+    transition: 300ms;
+    overflow: hidden;
+    box-shadow: 0px 1px #00000022;
+    text-align: center;
+}
+
+.active {
+    background: var(--primary-background);
+    color: var(--primary-foreground);
+}
+
+.button-card {
+    cursor: pointer;
+    text-align: center;
+}
+
+/* === calendar === */
+
+.arrow-left, .arrow-right {
+    border: solid var(--base-foreground);
+    border-width: 0 3px 3px 0;
+    display: inline-block;
+    padding: 3px;
+}
+
+.arrow-right {
+    transform: rotate(-45deg);
+}
+
+.arrow-left {
+    transform: rotate(135deg);
+}
+
+.calendar-header {
+    padding-left: 10px;
+    padding-right: 10px;
+    margin: auto;
+    width: 100%;
+}
+
+.calendar-table {
+    margin: auto;
+}
+
+.calendar-item {
+    border-radius: 50%;
+    cursor: pointer;
+    width: 2em;
+    height: 2em;
+}
+
+/* === qibla === */
+
+.qibla {
+    display: grid;
+    height: 300px;
+}
+
+.north-direction {
+    transform: rotate(-40deg);
+    width: 250px;
+    height: 250px;
+    margin: auto;
+    text-align: center;
+    grid-column: 1;
+    grid-row: 1;
+    transition: 200ms;
+}
+
+.north-text-container {
+    border-radius: 50%;
+    background: var(--window-background);
+    width: 1.5em;
+    height: 1.5em;
+    text-align: center;
+    margin: auto;
+    position: relative;
+    margin-top: 45px;
+}
+
+.north-text {
+    color: red;
+    font-size: x-small;
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.qibla-direction {
+    transform: rotate(45deg);
+    width: 250px;
+    height: 250px;
+    margin: auto;
+    grid-column: 1;
+    grid-row: 1;
+    transition: 200ms;
+}
+
+.arrow-large {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    border-width: 4px 4px 0 0;
+    border-style: solid;
+    margin: 10px;
+    transform: rotate(-45deg);
+    zoom: 3;
+    margin: auto;
+}
+.arrow-large:before {
+    content: "";
+    box-sizing: border-box;
+    right: 0px;
+    top: -3px;
+    position: absolute;
+    height: 4px;
+    box-shadow: inset 0 0 0 32px;
+    transform: rotate(-45deg);
+    width: 40px;
+    transform-origin: right top;
+}
+
+.big-circle {
+    background: var(--primary-background);
+    border-radius: 50%;
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    position: relative;
+    margin: auto;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.big-circle-text {
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--primary-foreground);
+}
+
+.qibla-text {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+/* === extra === */
+
+/* Hide the annoying highlight on android */
+input, textarea, button, select, a, div {
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
