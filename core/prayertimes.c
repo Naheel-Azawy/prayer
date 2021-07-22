@@ -453,7 +453,7 @@ short remaining_to(short *times, short now, byte next) {
   short diff = (short) (time - now);
   if (diff < 0) {
     if (next == FAJR) {
-      diff = (short) (time + (24 * 60) - now) * -1;
+      diff = (short) (time + (24 * 60) - now);
     }
   }
   return diff;
