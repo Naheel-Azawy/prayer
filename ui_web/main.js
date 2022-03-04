@@ -291,16 +291,15 @@ function calendar() {
         let now = new HijrahDate();
         let hdate = new HijrahDate();
         hdate.plusMonths(month_diff);
-        // hdate.setDate(1);
-        hdate = new HijrahDate(hdate.getFullYear(), hdate.getMonth(), 1);
-        let weekday = hdate.getDay();
-        let start_month = hdate.getMonth();
+        let hdate_tmp = new HijrahDate(hdate.getFullYear(), hdate.getMonth(), 1);
+        let weekday = hdate_tmp.getDay();
+        let start_month = hdate_tmp.getMonth();
 
-        header_text.innerText = hdate.format("MMMM yyyy", config.lang);
+        header_text.innerText = hdate_tmp.format("MMMM yyyy", config.lang);
 
         let count = 0;
         let row, item;
-        while (hdate.getMonth() == start_month) {
+        while (hdate_tmp.getMonth() == start_month) {
             if (count++ % 7 == 0) {
                 calendar_table.appendChild(row = $tr());
             }
@@ -311,10 +310,10 @@ function calendar() {
             } else {
                 row.appendChild(item = $td({
                     className: "calendar-item ripple",
-                    content: hdate.getDate().toString(),
+                    content: hdate_tmp.getDate().toString(),
                     onclick: event => {
                         // TODO: fix this
-                        let h = new HijrahDate(now.getFullYear(), now.getMonth(),
+                        let h = new HijrahDate(hdate.getFullYear(), hdate.getMonth(),
                                                event.target.innerText);
                         let g = h.toGregorian();
                         let str = h.format("dd MMMM yyyy", config.lang) + "\n" +
@@ -329,12 +328,12 @@ function calendar() {
                         toast(str);
                     }
                 }));
-                if (hdate.getFullYear() == now.getFullYear() &&
-                    hdate.getMonth() == now.getMonth() &&
-                    hdate.getDate() == now.getDate()) {
+                if (hdate_tmp.getFullYear() == now.getFullYear() &&
+                    hdate_tmp.getMonth() == now.getMonth() &&
+                    hdate_tmp.getDate() == now.getDate()) {
                     item.classList.add("active");
                 }
-                hdate.plusDays(1);
+                hdate_tmp.plusDays(1);
             }
         }
 
@@ -427,7 +426,11 @@ function qibla() {
         let lngDelta = (lng2 - lng1);
         let y = Math.sin(lngDelta) * Math.cos(lat2);
         let x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lngDelta);
-        return (Math.atan2(y, x) * 180) / Math.PI;
+        let res = (Math.atan2(y, x) * 180) / Math.PI;
+        if (res < 0) {
+            res += 360;
+        }
+        return res;
     }
 
     let from_north = qibla_from_north(config.lat, config.lng);
