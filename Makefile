@@ -43,7 +43,7 @@ ui_web/node_modules:
 
 build/web/index.html: ui_web/node_modules build/prayertimes.wasm.js $(SRC_WEB)
 	cd ui_web && npm run build:prod
-	rm -r ui_android/Prayer/app/src/main/assets/*
+	rm -rf ui_android/Prayer/app/src/main/assets/*
 	cp build/web/* ui_android/Prayer/app/src/main/assets/
 
 install:
