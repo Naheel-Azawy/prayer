@@ -1,29 +1,24 @@
 import HijrahDate from "hijrah-date";
 
 import {
-    pt_asm_init, prayertimes, next_time,
-    remaining_to, time_str_nearest, TIMES_NAMES
+    pt_init, prayertimes, next_time,
+    remaining_to, time_str_nearest, TIMES_NAMES,
+    calc_methods, asr_methods, high_lat_methods
 } from "./pt_iface";
 
 import {
-    $div, $span, $table, $tr, $td, $br, $hr
+    config, load_config, save_config
+} from "./configs";
+
+import {
+    $div, $span, $table, $tr, $td, $br, $hr,
+    $input, $select, $option, $get
 } from "elemobj";
 
 import {ripple_apply} from "./ripple";
 
 import "./style.css";
 import "./ripple.css";
-
-// setup =====
-// TODO: build real setup
-
-const config = {
-    lat: 25.411720,
-    lng: 51.503878,
-    timezone: 3.0,
-    lang: "en",
-    time12h: true
-};
 
 const time_name = i =>
       (config.lang == "ar" ?
@@ -51,7 +46,7 @@ function remaining_time_human(time, time_name) {
             return "it's time for " + time_name;
         }
     }
-    
+
     let passed = false;
     if (time < 0) {
         passed = true;
@@ -69,8 +64,9 @@ function remaining_time_human(time, time_name) {
     let hours_str = hours.toString();
     let minutes_str = minutes.toString();
 
+    let res;
     if (config.lang == "ar") {
-        str_rem = passed ? "مضى " : "المتبقي ";
+        str_rem = passed ? "مضت " : "المتبقي ";
         str_hr = "ساعة";
         str_hr_2 = "ساعتان";
         str_hr_many = "ساعات";
@@ -107,8 +103,15 @@ function remaining_time_human(time, time_name) {
         if (hours == 0) {
             str_hr_many = hours_str = str_and = "";
         }
+
+        res = str_rem +
+            hours_str +
+            (hours_str == "" ? "" : " ") +
+            str_hr_many + str_and + minutes_str +
+            (minutes_str == "" ? "" : " ") +
+            str_min_many;
     } else {
-        str_rem = passed ? "Passed " : "Remaining ";
+        str_rem = passed ? " passed" : " remaining";
         str_hr = str_hr_2 = str_hr_many = "hr";
         str_min = str_min_2 = str_min_many = "min";
         str_and = " and ";
@@ -119,14 +122,14 @@ function remaining_time_human(time, time_name) {
         if (hours == 0) {
             str_hr_many = hours_str = str_and = "";
         }
-    }
 
-    let res = str_rem +
-        hours_str +
-        (hours_str == "" ? "" : " ") +
-        str_hr_many + str_and + minutes_str +
-        (minutes_str == "" ? "" : " ") +
-        str_min_many;
+        res = hours_str +
+            (hours_str == "" ? "" : " ") +
+            str_hr_many + str_and + minutes_str +
+            (minutes_str == "" ? "" : " ") +
+            str_min_many +
+            str_rem;
+    }
 
     if (time_name.endsWith("iqama")) {
         if (config.lang == "ar") {
@@ -210,11 +213,11 @@ function prayer_cards(times) {
 
         update() {
             this.elem_name.innerText = time_name(this.i);
-            this.elem_time.innerText = time_human(times[this.i]);
+            this.elem_time.innerText = time_human(this.times[this.i]);
             if (this.active) {
                 let i = this.i == next ? real_next : this.i;
                 this.elem_rema.innerText = remaining_time_human(
-                    remaining_to(times, new Date(), i), i);
+                    remaining_to(this.times, new Date(), i), i);
                 this.elem.classList.add("active");
             } else {
                 this.elem_rema.innerText = "";
@@ -312,20 +315,20 @@ function calendar() {
                     className: "calendar-item ripple",
                     content: hdate_tmp.getDate().toString(),
                     onclick: event => {
-                        // TODO: fix this
                         let h = new HijrahDate(hdate.getFullYear(), hdate.getMonth(),
                                                event.target.innerText);
                         let g = h.toGregorian();
-                        let str = h.format("dd MMMM yyyy", config.lang) + "\n" +
+                        let title = h.format("dd MMMM yyyy", config.lang) + "\n" +
                             g.getDate() + " " +
                             g.toLocaleString(config.lang,
                                              { month: 'long' }) + " " +
-                            g.getFullYear() + "\n\n";
+                            g.getFullYear();
                         let times = prayertimes(g);
+                        let msg = "";
                         for (let i of TIMES_NAMES) {
-                            str += `${time_name(i)}: ${time_human(times[i])}\n`;
+                            msg += `${time_name(i)}: ${time_human(times[i])}\n`;
                         }
-                        toast(str);
+                        dialog(title, msg);
                     }
                 }));
                 if (hdate_tmp.getFullYear() == now.getFullYear() &&
@@ -391,7 +394,7 @@ function qibla() {
         str_qibla = "QIBLA";
         str_from_north = "Qibla is %s° from north";
     }
-    
+
     let qibla_text;
     let qibla_direction;
     let north_direction;
@@ -447,81 +450,148 @@ function qibla() {
     return elem;
 }
 
+function config_ui() {
+
+    function cfg_list(key, a, callback) {
+        if (!Array.isArray(a)) {
+            a = Object.keys(a);
+        }
+        let selected = a.indexOf(config[key]);
+        return $td($select({
+            onchange: e => {
+                config[key] = e.target.value;
+                save_config();
+                if (callback) callback(e);
+                main();
+            }
+        }, (() => {
+            let res = [];
+            for (let i in a) {
+                if (i == selected) {
+                    res.push($option({selected: "selected"}, a[i]));
+                } else {
+                    res.push($option(a[i]));
+                }
+            }
+            return res;
+        })()));
+    }
+
+    function cfg_input(key) {
+        return $td($input({
+            type: "number",
+            value: config[key],
+            onchange: e => {
+                config[key] = Number(e.target.value);
+                save_config();
+            }
+        }));
+    }
+
+    const $line = () => $tr($td({colSpan: 2}, $hr()));
+
+    return [
+        $div({
+            className: "button-card ripple",
+            content: config.lang == "ar" ? "الإعدادات" : "Settings",
+            onclick: e => {
+                let elem = $get("#config");
+                if (elem.style.display == "none") {
+                    elem.style.display = "block";
+                    window.scrollTo(0, document.body.scrollHeight);
+                } else {
+                    elem.style.display = "none";
+                }
+            }
+        }),
+
+        $table({
+            id: "config",
+            style: {display: "none", width: "100%"}
+        }, [
+            $line(),
+
+            $tr([$td("Language"), cfg_list("lang", ["ar", "en"])]),
+            $tr([$td("Theme"), cfg_list("theme", ["auto", "dark", "light"], update_theme)]),
+
+            $line(),
+
+            $tr([$td("Latitude"),  cfg_input("lat")]),
+            $tr([$td("Longitude"), cfg_input("lng")]),
+            $tr([$td("Timezone"),  cfg_input("time_zone")]),
+
+            $line(),
+
+            $tr([$td("Calculation method"),   cfg_list("calc_method",      calc_methods)]),
+            $tr([$td("Asr method"),           cfg_list("asr_juristic",     asr_methods)]),
+            $tr([$td("High latitude method"), cfg_list("adjust_high_lats", high_lat_methods)])
+        ])
+    ];
+}
+
 function deadbeef() {
     return $div({
         className: "button-card ripple",
         content: "CLICK ME",
-        onclick: () => toast("deadbeef")
+        onclick: () => dialog("deadbeef")
     });
 }
 
-function theme_btn() {
-    return $div({
-        className: "button-card ripple",
-        content: "TOGGLE THEME",
-        onclick: () => {
-            document.body.classList.toggle("light");
-            theme_droid();
-        }
-    });
-}
-
-function lang_btn() {
-    return $div({
-        className: "button-card ripple",
-        content: "TOGGLE LANG",
-        onclick: () => {
-            config.lang = config.lang == "ar" ? "en" : "ar";
-            main();
-        }
-    });
-}
-
-function reload_btn() {
-    return $div({
-        className: "button-card ripple",
-        content: "RELOAD",
-        onclick: main
-    });
-}
-
-function loc_btn() {
-    // TODO
-    /*let whatever = document.getElementById("whatever");
-    return $div({
-        className: "button-card ripple",
-        content: "LOCATION TEST",
-        onclick: () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(data => {
-                    console.log(data);
-                    whatever.innerText = JSON.stringify({
-                        accuracy: data.coords.accuracy,
-                        accuracy: data.coords.accuracy,
-                        altitude: data.coords.altitude,
-                        altitudeAccuracy: data.coords.altitudeAccuracy,
-                        heading: data.coords.heading,
-                        latitude: data.coords.latitude,
-                        longitude: data.coords.longitude,
-                        speed: data.coords.speed
-                    }, null, 2);
-                }, err => {
-                    if (err.code == 1) {
-                        alert("Error: Access is denied!");
-                    } else if (err.code == 2) {
-                        alert("Error: Position is unavailable!");
-                    }
-                }, {
-                    timeout: 60000
-                });
-            } else {
-                alert("Sorry, browser does not support geolocation!");
+function special_case() {
+    function $thing(txt, cfg) {
+        return $div({
+            className: "button-card ripple",
+            content: txt,
+            onclick: () => {
+                Object.assign(config, cfg);
+                save_config();
+                main();
             }
-        }
-    });*/
+        });
+    }
+
+    return [
+        $thing(config.lang == "ar" ? "الدوحة" : "Doha", {
+            calc_method:  "qatar",
+            asr_juristic: "shafii",
+            lat:           25.411720,
+            lng:           51.503878,
+            time_zone:     3.0
+        }),
+        $thing(config.lang == "ar" ? "بغداد" : "Baghdad", {
+            calc_method:  "makkah",
+            asr_juristic: "shafii",
+            lat:           33.3118944,
+            lng:           44.2158181,
+            time_zone:     3.0
+        })
+    ];
 }
 
 // ui utils =====
+
+function update_theme() {
+    let light = false;
+
+    if (config.theme == "auto") {
+        if (typeof droid != "undefined") {
+            light = droid.getTheme() == "light";
+        } else {
+            light = window.matchMedia &&
+                window.matchMedia('(prefers-color-scheme: light)').matches;
+        }
+    } else {
+        light = config.theme == "light";
+    }
+
+    if (light) {
+        document.body.classList.add("light");
+    } else {
+        document.body.classList.remove("light");
+    }
+
+    theme_droid();
+}
 
 function theme_droid() {
     if (typeof droid != "undefined") {
@@ -533,32 +603,62 @@ function theme_droid() {
     }
 }
 
-function toast(str) {
+function dialog(title, str) {
+    if (!str) str = "";
     if (typeof droid != "undefined") {
-        droid.toast(str);
+        droid.dialog(title, str);
     } else {
-        alert(str);
+        alert(title  + "\n\n" + str);
     }
+}
+
+// utils =====
+
+function run_at(hh, mm, callback) {
+    // https://stackoverflow.com/a/25492756/3825872
+    var interval = 0;
+    var today = new Date();
+    var today_hh = today.getHours();
+    var today_mm = today.getMinutes();
+    if ((today_hh > hh) || (today_hh == hh && today_mm > mm)) {
+        var midnight = new Date();
+        midnight.setHours(24,0,0,0);
+        interval = midnight.getTime() - today.getTime() +
+            (hh * 60 * 60 * 1000) + (mm * 60 * 1000);
+    } else {
+        interval = (hh - today_hh) * 60 * 60 * 1000 + (mm - today_mm) * 60 * 1000;
+    }
+    return setTimeout(() => {
+        if (interval != 0) {
+            callback();
+        }
+    }, interval);
 }
 
 // main =====
 
 async function main() {
-    await pt_asm_init();
-    const times = prayertimes(new Date(), undefined); // TODO: add configs
+    load_config();
+    await pt_init();
+    const times = prayertimes(new Date(), config);
 
     document.body.innerHTML = "";
     document.body.appendChild($div({className: "main-container"}, [
         prayer_cards(times),
         calendar(),
         qibla(),
-        $hr(),
-        deadbeef(),
-        theme_btn(),
-        lang_btn(),
-        reload_btn()
+        ...special_case(),
+        ...config_ui()
     ]));
-    theme_droid();
+
+    update_theme();
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: light)')
+            .addEventListener('change', update_theme);
+    }
+
+    // re-run at 12:00 am
+    run_at(0, 0, main);
 
     try { ripple_apply(); } catch (e) {}
 }

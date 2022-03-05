@@ -2,71 +2,79 @@
 /* === base theme === */
 
 :root {
-    --window-background: #000000;
+    --radius: 3px;
+}
+
+:root {
+    --window-background:  #000000;
     --primary-background: #ffc107;
     --primary-foreground: #000000;
-    --base-background: #111111;
-    --base-foreground: #ffffff;
-    --ripple-background: white;
+    --base-background:    #111111;
+    --base-foreground:    #ffffff;
+    --ripple-background:  white;
+    --active-background:  #444444;
+    --active-foreground:  #ffffff;
 }
 
 .light {
-    --window-background: #f5f5f5;
+    --window-background:  #f5f5f5;
     --primary-background: #ffc107;
     --primary-foreground: #000000;
-    --base-background: #fefefe;
-    --base-foreground: #000000;
-    --ripple-background: black;
+    --base-background:    #fefefe;
+    --base-foreground:    #000000;
+    --ripple-background:  black;
+    --active-background:  #a0a0a0;
+    --active-foreground:  #000000;
 }
 
 body {
-    background: var(--window-background);
-    color: var(--base-foreground);
+    background:  var(--window-background);
+    color:       var(--base-foreground);
     font-family: sans-serif;
 }
 
 .main-container {
     max-width: 600px;
-    margin: auto;
+    margin:    auto;
 }
 
 /* === cards === */
 
 .button-card, .card {
-    background: var(--base-background);
-    color: var(--base-foreground);
-    border: 0px;
+    background:    var(--base-background);
+    color:         var(--base-foreground);
+    border:        0px;
     border-radius: 15px;
-    padding: 0.75em;
-    margin-top: 10px;
+    padding:       0.75em;
+    margin-top:    10px;
     margin-bottom: 10px;
-    font-size: 1em;
-    outline: none;
-    user-select: none;
-    min-height: 0px;
-    transition: 300ms;
-    overflow: hidden;
-    box-shadow: 0px 1px #00000022;
-    text-align: center;
+    font-size:     1em;
+    outline:       none;
+    user-select:   none;
+    min-height:    0px;
+    transition:    300ms;
+    overflow:      hidden;
+    box-shadow:    0px 1px #00000022;
+    text-align:    center;
 }
 
 .active {
     background: var(--primary-background);
-    color: var(--primary-foreground);
+    color:      var(--primary-foreground);
 }
 
 .button-card {
-    cursor: pointer;
+    cursor:     pointer;
     text-align: center;
 }
 
 /* === calendar === */
 
 .arrow-left, .arrow-right {
-    border: solid var(--base-foreground);
+    border:       solid var(--base-foreground);
     border-width: 0 3px 3px 0;
-    display: inline-block;
-    padding: 3px;
+    display:      inline-block;
+    padding:      3px;
 }
 
 .arrow-right {
@@ -78,10 +86,10 @@ body {
 }
 
 .calendar-header {
-    padding-left: 10px;
+    padding-left:  10px;
     padding-right: 10px;
-    margin: auto;
-    width: 100%;
+    margin:        auto;
+    width:         100%;
 }
 
 .calendar-table {
@@ -90,116 +98,219 @@ body {
 
 .calendar-item {
     border-radius: 50%;
-    cursor: pointer;
-    width: 2em;
-    height: 2em;
+    cursor:        pointer;
+    width:         2em;
+    height:        2em;
 }
 
 /* === qibla === */
 
 .qibla {
     display: grid;
-    height: 300px;
+    height:  300px;
 }
 
 .north-direction {
-    transform: rotate(-40deg);
-    width: 250px;
-    height: 250px;
-    margin: auto;
+    transform:  rotate(-40deg);
+    width:      250px;
+    height:     250px;
+    margin:     auto;
     text-align: center;
     grid-column: 1;
-    grid-row: 1;
-    transition: 200ms;
+    grid-row:    1;
+    transition:  200ms;
 }
 
 .north-text-container {
     border-radius: 50%;
-    background: var(--window-background);
-    width: 1.5em;
-    height: 1.5em;
-    text-align: center;
-    margin: auto;
-    position: relative;
-    margin-top: 45px;
+    background:    var(--window-background);
+    width:         1.5em;
+    height:        1.5em;
+    text-align:    center;
+    margin:        auto;
+    position:      relative;
+    margin-top:    45px;
 }
 
 .north-text {
-    color: red;
+    color:     red;
     font-size: x-small;
-    margin: 0;
-    position: absolute;
-    top: 50%;
-    left: 50%;
+    margin:    0;
+    position:  absolute;
+    top:       50%;
+    left:      50%;
     transform: translate(-50%, -50%);
 }
 
 .qibla-direction {
-    transform: rotate(45deg);
-    width: 250px;
-    height: 250px;
-    margin: auto;
+    transform:   rotate(45deg);
+    width:       250px;
+    height:      250px;
+    margin:      auto;
     grid-column: 1;
-    grid-row: 1;
-    transition: 200ms;
+    grid-row:    1;
+    transition:  200ms;
 }
 
 .arrow-large {
-    position: relative;
-    display: inline-block;
+    position:       relative;
+    display:        inline-block;
     vertical-align: middle;
-    box-sizing: border-box;
-    width: 20px;
-    height: 20px;
-    border-width: 4px 4px 0 0;
-    border-style: solid;
-    margin: 10px;
-    transform: rotate(-45deg);
-    zoom: 3;
-    margin: auto;
+    box-sizing:     border-box;
+    width:          20px;
+    height:         20px;
+    border-width:   4px 4px 0 0;
+    border-style:   solid;
+    margin:         10px;
+    transform:      rotate(-45deg);
+    zoom:           3;
+    margin:         auto;
 }
 .arrow-large:before {
-    content: "";
-    box-sizing: border-box;
-    right: 0px;
-    top: -3px;
-    position: absolute;
-    height: 4px;
-    box-shadow: inset 0 0 0 32px;
-    transform: rotate(-45deg);
-    width: 40px;
+    content:          "";
+    box-sizing:       border-box;
+    right:            0px;
+    top:              -3px;
+    position:         absolute;
+    height:           4px;
+    box-shadow:       inset 0 0 0 32px;
+    transform:        rotate(-45deg);
+    width:            40px;
     transform-origin: right top;
 }
 
 .big-circle {
-    background: var(--primary-background);
+    background:    var(--primary-background);
     border-radius: 50%;
-    width: 100px;
-    height: 100px;
-    display: inline-block;
-    position: relative;
-    margin: auto;
-    grid-column: 1;
-    grid-row: 1;
+    width:         100px;
+    height:        100px;
+    display:       inline-block;
+    position:      relative;
+    margin:        auto;
+    grid-column:   1;
+    grid-row:      1;
 }
 
 .big-circle-text {
-    margin: 0;
-    position: absolute;
-    top: 50%;
-    left: 50%;
+    margin:    0;
+    position:  absolute;
+    top:       50%;
+    left:      50%;
     transform: translate(-50%, -50%);
-    color: var(--primary-foreground);
+    color:     var(--primary-foreground);
 }
 
 .qibla-text {
     grid-column: 1;
-    grid-row: 1;
+    grid-row:    1;
 }
 
 /* === extra === */
 
+button, select, option, input, textarea {
+    background-color: var(--base-background);
+    color:            var(--base-foreground);
+    transition:       300ms;
+}
+
+input, button, select {
+    height: auto;
+}
+
+button, select {
+    background:    var(--base-background);
+    color:         var(--base-foreground);
+    border-radius: var(--radius);
+    border:        0px;
+    padding:       0.5em;
+    margin-right:  2px;
+    margin-left:   2px;
+    margin-top:    4px;
+    margin-bottom: 4px;
+    outline:       none;
+    user-select:   none;
+    min-height:    0px;
+    transition:    300ms;
+    overflow:      hidden;
+    box-shadow:    0px 1px #00000022;
+    cursor:        pointer;
+    text-align:    center;
+}
+
+input {
+    border-radius: var(--radius);
+    border:        1px solid gray;
+    padding:       0.3em;
+    margin-right:  2px;
+    margin-left:   2px;
+    margin-top:    4px;
+    margin-bottom: 4px;
+}
+
+button:active, select:active, input:focus {
+    background: var(--active-background);
+    color:      var(--active-foreground);
+}
+
+.textareas {
+    width:         100%;
+    height:        100%;
+    resize:        none;
+    white-space:   pre;
+    overflow-wrap: normal;
+    overflow-x:    auto;
+    border-radius: var(--radius);
+}
+
+.modal {
+    display:          none;  /* Hidden by default */
+    position:         fixed; /* Stay in place */
+    z-index:          10;    /* Sit on top */
+    padding-top:      100px; /* Location of the box */
+    left:             0;
+    top:              0;
+    width:            100%; /* Full width */
+    height:           100%; /* Full height */
+    overflow:         auto; /* Enable scroll if needed */
+    background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+    margin:           auto;
+    padding:          20px;
+    border:           1px solid gray;
+    border-radius:    var(--radius);
+    max-width:        500px;
+    max-height:       90%;
+    background-color: var(--base-background);
+    position:         relative;
+    animation:        animatein 150ms;
+}
+
+@keyframes animatein {
+    from { bottom: -300px; opacity: 0; }
+    to   { bottom: 0;      opacity: 1; }
+}
+
+td select {
+    width: 100%;
+}
+
+td input {
+    width: 95%;
+}
+
 /* Hide the annoying highlight on android */
 input, textarea, button, select, a, div {
     -webkit-tap-highlight-color: rgba(0,0,0,0);
+    outline: none !important;
+}
+
+/* Hide number inputs up and down */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    margin: 0;
 }

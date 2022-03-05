@@ -11,9 +11,10 @@ WASM_FUNCS="[ \
 '_next_time', \
 '_remaining_to']"
 
-all: build/prayer
-ino: build/prayer.ino
-web: build/web/index.html
+all:   build/prayer
+ino:   build/prayer.ino
+web:   build/web/index.html
+droid: build/prayer.apk
 
 build/prayer: $(HDR_CORE) $(SRC_CORE) $(SRC_CLI)
 	mkdir -p build
@@ -45,6 +46,13 @@ build/web/index.html: ui_web/node_modules build/prayertimes.wasm.js $(SRC_WEB)
 	cd ui_web && npm run build:prod
 	rm -rf ui_android/Prayer/app/src/main/assets/*
 	cp build/web/* ui_android/Prayer/app/src/main/assets/
+
+build/prayer.apk:
+	cd ui_android/Prayer && ./gradlew assembleDebug
+	cp ui_android/Prayer/app/build/outputs/apk/debug/app-debug.apk build/prayer.apk
+
+droid-install: build/prayer.apk
+	adb install -r build/prayer.apk
 
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)

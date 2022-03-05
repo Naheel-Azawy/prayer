@@ -9,8 +9,8 @@
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="modules">
           <set>
-            <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/app" />
+            <option value="/mnt/hdd1/Public/Projects/prayer/ui_android/Prayer" />
+            <option value="/mnt/hdd1/Public/Projects/prayer/ui_android/Prayer/app" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

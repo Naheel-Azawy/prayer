@@ -46,17 +46,65 @@ const MIDNIGHT    = 1; /* middle of night */
 const ONE_SEVENTH = 2; /* 1/7th of night */
 const ANGLE_BASED = 3; /* angle/60th of night */
 
-const default_config = {
-    calc_method: QATAR,
+/* Exported consts --- */
+// these are not defaults as it seems to have a noticeable effect
+// on performance
+
+export const names = {
+    fajr:         FAJR,
+    fajr_iqama:   FAJR_IQAMA,
+    sunrise:      SUNRISE,
+    duhr:         DUHR,
+    duhr_iqama:   DUHR_IQAMA,
+    asr:          ASR,
+    asr_iqama:    ASR_IQAMA,
+    sunset:       SUNSET,
+    magrib:       MAGRIB,
+    magrib_iqama: MAGRIB_IQAMA,
+    isha:         ISHA,
+    isha_iqama:   ISHA_IQAMA,
+};
+
+export const calc_methods = {
+    custom:             CUSTOM,
+    makkah:             MAKKAH,
+    egypt:              EGYPT,
+    qatar:              QATAR,
+    karachi:            KARACHI,
+    isna:               ISNA,
+    mwl:                MWL,
+    algeria:            ALGERIA,
+    jordan:             JORDAN,
+    kuwait:             KUWAIT,
+    england_birmingham: ENGLAND_BIRMINGHAM,
+    england_london:     ENGLAND_LONDON,
+    germany_munchen:    GERMANY_MUNCHEN,
+    germany_aachen:     GERMANY_AACHEN
+};
+
+export const asr_methods = {
+    shafii: SHAFII,
+    hanafi: HANAFI
+};
+
+export const high_lat_methods = {
+    none:        NONE,       
+    midnight:    MIDNIGHT,   
+    one_seventh: ONE_SEVENTH,
+    angle_based: ANGLE_BASED
+};
+
+export const default_config = {
+    calc_method: "qatar",
     fajr_angle: -1,
     magrib_is_minuets: false,
     magrib_val: -1,
     isha_is_minuets: false,
     isha_val: -1,
 
-    asr_juristic: SHAFII,
+    asr_juristic: "shafii",
     dhuhr_minutes: 0,
-    adjust_high_lats: ANGLE_BASED,
+    adjust_high_lats: "angle_based",
 
     lat: 25.411720,
     lng: 51.503878,
@@ -76,6 +124,8 @@ const default_config = {
     iqama_magrib: 10,
     iqama_isha: 20
 };
+
+/* Helpers --- */
 
 function time_str_to_index(time_str) {
     switch (time_str) {
@@ -131,12 +181,13 @@ export function time_str_nearest(time_str) {
     }
 }
 
-export async function pt_asm_init() {
+export async function pt_init() {
     // pt_asm is auto generated
     const pt_codearray = new Uint8Array(pt_asm.length);
     for (let i in pt_asm) pt_codearray[i] = pt_asm.charCodeAt(i);
     const wasm = await WebAssembly.instantiate(pt_codearray);
     pt_asm_exports = wasm.instance.exports;
+    // TODO: add android handler
 }
 
 function short_time_to_obj(stime) {
@@ -159,6 +210,8 @@ function date_to_short_time(date) {
         date.getMinutes();
 }
 
+/* Main interface --- */
+
 export function prayertimes(date, opts) {
     date = date || new Date();
     opts = opts || {};
@@ -173,6 +226,13 @@ export function prayertimes(date, opts) {
     let args = {};
     Object.assign(args, default_config);
     Object.assign(args, opts);
+
+    if (typeof(args.calc_method) == "string")
+        args.calc_method = calc_methods[args.calc_method];
+    if (typeof(args.asr_juristic) == "string")
+        args.asr_juristic = asr_methods[args.asr_juristic];
+    if (typeof(args.adjust_high_lats) == "string")
+        args.adjust_high_lats = high_lat_methods[args.adjust_high_lats];
 
     pt_full(times_buf, year, month, day,
             args.calc_method,

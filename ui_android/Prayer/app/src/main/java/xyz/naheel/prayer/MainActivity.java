@@ -3,7 +3,10 @@ package xyz.naheel.prayer;
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.hardware.Sensor;
@@ -12,6 +15,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.Html;
 import android.view.Display;
 import android.view.Surface;
@@ -28,14 +32,24 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity implements SensorEventListener {
 
+    private final String PREFS_KEY = "prayer-config";
+
+    private SharedPreferences prefs;
+    private SharedPreferences.Editor editor;
+
     private SensorManager mSensorManager;
     private WebView wv;
+
+    private String theme;
 
     @SuppressLint({"AddJavascriptInterface", "SetJavaScriptEnabled"}) // be extra careful!!!
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        editor = prefs.edit();
 
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
@@ -59,6 +73,14 @@ public class MainActivity extends Activity implements SensorEventListener {
                 splash.setVisibility(View.GONE);
             }
         });
+
+        int nightModeFlags = getResources().getConfiguration().uiMode &
+                Configuration.UI_MODE_NIGHT_MASK;
+        if (nightModeFlags == Configuration.UI_MODE_NIGHT_NO) {
+            theme = "light";
+        } else {
+            theme = "dark";
+        }
     }
 
     @Override
@@ -91,7 +113,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             case Surface.ROTATION_0:
                 break;
         }
-        degree  = 360 - degree;
+        degree = 360 - degree;
+        // TODO: low pass?
         wv.loadUrl("javascript: set_north(" + degree + ")");
     }
 
@@ -103,11 +126,11 @@ public class MainActivity extends Activity implements SensorEventListener {
     void theme(boolean light, String bg, String fg) {
         int background = Color.parseColor(bg);
         int foreground = Color.parseColor(fg);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            // setting status bar and navigation bar colors
-            getWindow().setStatusBarColor(background);
-            getWindow().setNavigationBarColor(background);
-            try {
+        // setting status bar and navigation bar colors
+        getWindow().setStatusBarColor(background);
+        getWindow().setNavigationBarColor(background);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 WindowInsetsController controller = getWindow().getDecorView().getWindowInsetsController();
                 controller.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
                 controller.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
@@ -117,13 +140,15 @@ public class MainActivity extends Activity implements SensorEventListener {
                     controller.setSystemBarsAppearance(WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
                             WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
                 }
-            } catch (NoSuchMethodError ignored) {
-                if (light) {
-                    getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR |
-                            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                } else {
-                    getWindow().getDecorView().setSystemUiVisibility(0);
-                }
+            } else {
+                throw new Exception();
+            }
+        } catch (NoSuchMethodError | Exception ignored) {
+            if (light) {
+                getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR |
+                        View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            } else {
+                getWindow().getDecorView().setSystemUiVisibility(0);
             }
         }
         // setting action bar colors
@@ -136,13 +161,36 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     public class WebAppInterface {
         @JavascriptInterface
-        public void toast(String toast) {
-            Toast.makeText(MainActivity.this, toast, Toast.LENGTH_SHORT).show();
+        public void toast(String text) {
+            Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
+        }
+
+        @JavascriptInterface
+        public void dialog(String title, String text) {
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(title)
+                    .setMessage(text)
+                    .show();
         }
 
         @JavascriptInterface
         public void theme(boolean light, String bg, String fg) {
             runOnUiThread(() -> MainActivity.this.theme(light, bg, fg));
+        }
+
+        @JavascriptInterface
+        public String prefsLoad() {
+            return prefs.getString(PREFS_KEY, "{}");
+        }
+
+        @JavascriptInterface
+        public boolean prefsSave(String json) {
+            return editor.putString(PREFS_KEY, json).commit();
+        }
+
+        @JavascriptInterface
+        public String getTheme() {
+            return theme;
         }
     }
 
