@@ -2,11 +2,14 @@
 /* === base theme === */
 
 :root {
-    --radius: 3px;
+    --radius:       3px;
+    --width:        36em;
+    --dialog-width: 26em;
 }
 
 :root {
     --window-background:  #000000;
+    --dialog-background:  #222222;
     --primary-background: #ffc107;
     --primary-foreground: #000000;
     --base-background:    #111111;
@@ -18,6 +21,7 @@
 
 .light {
     --window-background:  #f5f5f5;
+    --dialog-background:  #f0f0f0;
     --primary-background: #ffc107;
     --primary-foreground: #000000;
     --base-background:    #fefefe;
@@ -34,7 +38,7 @@ body {
 }
 
 .main-container {
-    max-width: 600px;
+    max-width: var(--width);
     margin:    auto;
 }
 
@@ -262,42 +266,63 @@ button:active, select:active, input:focus {
     border-radius: var(--radius);
 }
 
-.modal {
-    display:          none;  /* Hidden by default */
-    position:         fixed; /* Stay in place */
-    z-index:          10;    /* Sit on top */
-    padding-top:      100px; /* Location of the box */
-    left:             0;
-    top:              0;
-    width:            100%; /* Full width */
-    height:           100%; /* Full height */
-    overflow:         auto; /* Enable scroll if needed */
-    background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
-}
-
-.modal-content {
-    margin:           auto;
-    padding:          20px;
-    border:           1px solid gray;
-    border-radius:    var(--radius);
-    max-width:        500px;
-    max-height:       90%;
-    background-color: var(--base-background);
-    position:         relative;
-    animation:        animatein 150ms;
-}
-
-@keyframes animatein {
-    from { bottom: -300px; opacity: 0; }
-    to   { bottom: 0;      opacity: 1; }
-}
-
 td select {
     width: 100%;
 }
 
 td input {
     width: 95%;
+}
+
+.button-round {
+    width:            2em;
+    height:           2em;
+    border-radius:    50%;
+    font-size:        1em;
+    font-weight:      bold;
+    cursor:           pointer;
+    background:       var(--base-background);
+    border:           none;
+}
+
+.button-round:active {
+    background: var(--active-background);
+    border:     0px;
+}
+
+hr {
+    background-color: var(--base-foreground);
+    border: none;
+    height: 1px;
+}
+
+.modal {
+    position:         fixed;
+    display:          none;
+    top:              0;
+    left:             0;
+    right:            0;
+    bottom:           0;
+    width:            100%;
+    height:           100%;
+    background-color: #000000bb;
+    transition:       opacity 200ms;
+}
+
+.modal-content {
+    padding:          10px;
+    width:            var(--dialog-width);
+    width:            min(var(--dialog-width), 80%);
+    background-color: var(--dialog-background);
+    box-shadow:       0px 5px #00000011;
+
+    margin:        0;
+    position:      absolute;
+    top:           50%;
+    left:          50%;
+    -ms-transform: translate(-50%, -50%);
+    transform:     translate(-50%, -50%);
+    margin-top:    -45px;
 }
 
 /* Hide the annoying highlight on android */

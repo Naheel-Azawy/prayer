@@ -1,7 +1,5 @@
 import {pt_asm} from "../build/prayertimes.wasm.js";
 
-let pt_asm_exports = undefined;
-
 /* Times Indices --- */
 const FAJR         =  0;
 const FAJR_IQAMA   =  1;
@@ -66,7 +64,6 @@ export const names = {
 };
 
 export const calc_methods = {
-    custom:             CUSTOM,
     makkah:             MAKKAH,
     egypt:              EGYPT,
     qatar:              QATAR,
@@ -181,13 +178,8 @@ export function time_str_nearest(time_str) {
     }
 }
 
-export async function pt_init() {
-    // pt_asm is auto generated
-    const pt_codearray = new Uint8Array(pt_asm.length);
-    for (let i in pt_asm) pt_codearray[i] = pt_asm.charCodeAt(i);
-    const wasm = await WebAssembly.instantiate(pt_codearray);
-    pt_asm_exports = wasm.instance.exports;
-    // TODO: add android handler
+function stime(h, m) {
+    return h * 60 + m;
 }
 
 function short_time_to_obj(stime) {
@@ -210,18 +202,67 @@ function date_to_short_time(date) {
         date.getMinutes();
 }
 
+/* C interfaces --- */
+
+const fake_iface = {
+    init: async () => {},
+
+    pt_full: (...args) => {
+        return [stime(3, 22), stime(3, 42), stime(4, 51), stime(11, 39),
+                stime(11, 59), stime(15, 3), stime(15, 23), stime(18, 28),
+                stime(18, 28), stime(18, 38), stime(19, 58), stime(20, 8)];
+    },
+
+    next_time: (times, now) => {
+        return DUHR;
+    },
+
+    remaining_to: (times, now, target) => {
+        return stime(1, 5);
+    }
+};
+
+let pt_asm_exports = undefined;
+const asm_iface = {
+    init: async () => {
+        // pt_asm is auto generated
+        const pt_codearray = new Uint8Array(pt_asm.length);
+        for (let i in pt_asm) pt_codearray[i] = pt_asm.charCodeAt(i);
+        const wasm = await WebAssembly.instantiate(pt_codearray);
+        pt_asm_exports = wasm.instance.exports;
+    },
+
+    pt_full: (...args) => {
+        let {memory, pt_full} = pt_asm_exports;
+        let times_buf = new Uint16Array(memory.buffer, 0, TIMES_LEN);
+        pt_full(times_buf, ...args);
+        return times_buf;
+    },
+
+    next_time: (times, now) => {
+        return pt_asm_exports.next_time(times, now);
+    },
+
+    remaining_to: (times, now, target) => {
+        return pt_asm_exports.remaining_to(times, now, target);
+    }
+};
+
+let c_iface = asm_iface;
+
 /* Main interface --- */
+
+export async function pt_init() {
+    await c_iface.init();
+}
 
 export function prayertimes(date, opts) {
     date = date || new Date();
     opts = opts || {};
 
-    let {memory, pt_full} = pt_asm_exports;
-
-    let times_buf = new Uint16Array(memory.buffer, 0, TIMES_LEN);
-    let year      = date.getFullYear();
-    let month     = date.getMonth() + 1;
-    let day       = date.getDate();
+    let year  = date.getFullYear();
+    let month = date.getMonth() + 1;
+    let day   = date.getDate();
 
     let args = {};
     Object.assign(args, default_config);
@@ -234,53 +275,51 @@ export function prayertimes(date, opts) {
     if (typeof(args.adjust_high_lats) == "string")
         args.adjust_high_lats = high_lat_methods[args.adjust_high_lats];
 
-    pt_full(times_buf, year, month, day,
-            args.calc_method,
-            args.fajr_angle,
-            args.magrib_is_minuets,
-            args.magrib_val,
-            args.isha_is_minuets,
-            args.isha_val,
-            args.asr_juristic,
-            args.dhuhr_minutes,
-            args.adjust_high_lats,
-            args.lat,
-            args.lng,
-            args.time_zone,
-            args.offset_fajr,
-            args.offset_sunrise,
-            args.offset_duhr,
-            args.offset_asr,
-            args.offset_sunset,
-            args.offset_magrib,
-            args.offset_isha,
-            args.iqama_fajr,
-            args.iqama_duhr,
-            args.iqama_asr,
-            args.iqama_magrib,
-            args.iqama_isha);
+    let times_arr = c_iface.pt_full(
+        year, month, day,
+        args.calc_method,
+        args.fajr_angle,
+        args.magrib_is_minuets,
+        args.magrib_val,
+        args.isha_is_minuets,
+        args.isha_val,
+        args.asr_juristic,
+        args.dhuhr_minutes,
+        args.adjust_high_lats,
+        args.lat,
+        args.lng,
+        args.time_zone,
+        args.offset_fajr,
+        args.offset_sunrise,
+        args.offset_duhr,
+        args.offset_asr,
+        args.offset_sunset,
+        args.offset_magrib,
+        args.offset_isha,
+        args.iqama_fajr,
+        args.iqama_duhr,
+        args.iqama_asr,
+        args.iqama_magrib,
+        args.iqama_isha);
 
-    let res = {times_buf};
+    let res = [];
     for (let i = 0; i < TIMES_LEN; ++i) {
         res[index_to_time_str(i)] =
-            short_time_to_date(times_buf[i], date);
+            short_time_to_date(times_arr[i], date);
     }
     return res;
 }
 
 export function next_time(times, now) {
-    let {next_time} = pt_asm_exports;
     now = date_to_short_time(now || new Date());
-    let next_index = next_time(times.times_buf, now);
+    let next_index = c_iface.next_time(times.times_buf, now);
     return index_to_time_str(next_index);
 }
 
 export function remaining_to(times, now, target_time) {
-    let {remaining_to} = pt_asm_exports;
     now = now || new Date();
     target_time = target_time || next_time(times, now);
     target_time = time_str_to_index(target_time);
     now = date_to_short_time(now);
-    let rem = remaining_to(times.times_buf, now, target_time);
-    return rem;
+    return c_iface.remaining_to(times.times_buf, now, target_time);
 }

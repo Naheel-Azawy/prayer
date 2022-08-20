@@ -16,6 +16,8 @@ import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.text.Html;
 import android.view.Display;
 import android.view.Surface;
@@ -30,6 +32,9 @@ import android.webkit.WebViewClient;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class MainActivity extends Activity implements SensorEventListener {
 
     private final String PREFS_KEY = "prayer-config";
@@ -37,10 +42,12 @@ public class MainActivity extends Activity implements SensorEventListener {
     private SharedPreferences prefs;
     private SharedPreferences.Editor editor;
 
+    private Menu menu;
     private SensorManager mSensorManager;
     private WebView wv;
 
     private String theme;
+    private JSONObject strings;
 
     @SuppressLint({"AddJavascriptInterface", "SetJavaScriptEnabled"}) // be extra careful!!!
     @Override
@@ -63,7 +70,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         wv.addJavascriptInterface(new WebAppInterface(), "droid");
         wv.loadUrl("file:///android_asset/index.html");
         wv.setWebChromeClient(new WebChromeClient() {
-            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+            public void onGeolocationPermissionsShowPrompt(String origin,
+                                                           GeolocationPermissions.Callback callback) {
                 callback.invoke(origin, true, false);
             }
         });
@@ -86,14 +94,50 @@ public class MainActivity extends Activity implements SensorEventListener {
     @Override
     protected void onResume() {
         super.onResume();
-        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION),
-                SensorManager.SENSOR_DELAY_GAME);
+        mSensorManager.registerListener(this,
+                mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION),
+                SensorManager.SENSOR_DELAY_NORMAL);
+        wv.reload();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         mSensorManager.unregisterListener(this);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        this.menu = menu;
+        try {
+            updateMenuItems();
+        } catch (JSONException ignored) {
+        }
+        return true;
+    }
+
+    private void updateMenuItems() throws JSONException {
+        if (menu == null || strings == null)
+            return;
+        menu.clear();
+        menu.add(Menu.NONE, R.id.locationMenu, 0, strings.getString("find_place"))
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, R.id.settingsMenu, 0, strings.getString("settings"))
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.locationMenu:
+                tryRunJs("place_search_show()");
+                return true;
+            case R.id.settingsMenu:
+                tryRunJs("settings_show()");
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -114,8 +158,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 break;
         }
         degree = 360 - degree;
-        // TODO: low pass?
-        wv.loadUrl("javascript: set_north(" + degree + ")");
+        tryRunJs("set_north(" + degree + ")");
     }
 
     @Override
@@ -127,8 +170,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         int background = Color.parseColor(bg);
         int foreground = Color.parseColor(fg);
         // setting status bar and navigation bar colors
-        getWindow().setStatusBarColor(background);
-        getWindow().setNavigationBarColor(background);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(background);
+            getWindow().setNavigationBarColor(background);
+        }
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 WindowInsetsController controller = getWindow().getDecorView().getWindowInsetsController();
@@ -157,6 +202,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         actionBar.setBackgroundDrawable(new ColorDrawable(background));
         actionBar.setTitle(Html.fromHtml("<font color='" + foreground + "'>" + title + "</font>"));
         getWindow().getDecorView().setBackgroundColor(background);
+    }
+
+    private void tryRunJs(String code) {
+        wv.loadUrl("javascript: try {" + code + "} catch (_) {}");
     }
 
     public class WebAppInterface {
@@ -191,6 +240,21 @@ public class MainActivity extends Activity implements SensorEventListener {
         @JavascriptInterface
         public String getTheme() {
             return theme;
+        }
+
+        @JavascriptInterface
+        public void setStrings(String json) {
+            try {
+                strings = new JSONObject(json);
+                runOnUiThread(() -> {
+                    try {
+                        updateMenuItems();
+                    } catch (JSONException ignored) {
+                    }
+                });
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
     }
 

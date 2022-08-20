@@ -18,7 +18,7 @@ function buildString() {
 
 module.exports = env => {
     return {
-        target:  "node",
+        target:  ["node", "es3"],
         mode:    env.production ? "production" : "development",
         devtool: env.production ? undefined : "inline-source-map",
 
@@ -38,6 +38,7 @@ module.exports = env => {
 
         module: {
             rules: [
+                {test: /\.js$/, loader: "ts-loader"},
                 {test: /\.css$/, use: ["style-loader", "css-loader"]},
                 { test: /\.ttf$/, loader: "url-loader"}
             ]

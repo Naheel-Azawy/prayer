@@ -7,6 +7,7 @@
 typedef struct {
   int  time_format;
   bool mini;
+  bool xfce;
 } ui_opts;
 
 const char *TIMES_NAMES[] = {
@@ -33,6 +34,7 @@ void help() {
   printf("  --asr    <ASR>         asr juristic calculation method\n");
   printf("  --highlat <HIGHLAT>    high latitude adjustment method\n");
   printf("  --mini                 only show the remaining time\n");
+  printf("  --xfce                 xfce panel genmon compatible output\n");
   printf("  --help                 show this help\n");
   printf("\n");
 
@@ -129,6 +131,9 @@ void parse_args(int argc, char **argv, prayer_time *pt, ui_opts *opts) {
     } else if (strcmp("--mini", argv[i]) == 0) {
       opts->mini = true;
 
+    } else if (strcmp("--xfce", argv[i]) == 0) {
+      opts->xfce = true;
+
     } else if (strcmp("--tz", argv[i]) == 0) {
       pt->opts.time_zone = atof(argv[++i]);
 
@@ -150,6 +155,9 @@ void parse_args(int argc, char **argv, prayer_time *pt, ui_opts *opts) {
   }
 }
 
+void print_rem() {
+}
+
 int main(int argc, char **argv) {
   time_t t_t = time(NULL);
   struct tm *t = localtime(&t_t);
@@ -169,6 +177,7 @@ int main(int argc, char **argv) {
 
   opts.time_format = TIME_12;
   opts.mini        = false;
+  opts.xfce        = false;
 
   int year = 1900 + t->tm_year;
   int month = 1+ t->tm_mon;
@@ -185,7 +194,30 @@ int main(int argc, char **argv) {
   // print_time(time_now, opts.time_format);
   // printf(" %04d.%02d.%02d\n\n", year, month, day);
 
-  if (!opts.mini) {
+  if (opts.mini) {
+    rem = remaining_to(pt.times, time_now, real_nxt);
+    if (rem == 0) {
+      printf("%s", TIMES_NAMES[real_nxt]);
+    } else if (IS_IQAMA(real_nxt)) {
+      print_time(rem, TIME_24);
+      printf("i");
+    } else {
+      print_time(rem, TIME_24);
+    }
+    printf("\n");
+
+  } else if (opts.xfce) {
+    printf("<txt>");
+    rem = remaining_to(pt.times, time_now, real_nxt);
+    if (rem == 0) {
+      printf("%s", TIMES_NAMES[real_nxt]);
+    } else if (IS_IQAMA(real_nxt)) {
+      print_time(rem, TIME_24);
+      printf("i");
+    } else {
+      print_time(rem, TIME_24);
+    }
+    printf("</txt>\n<tool>\n");
     FOR_PRAYER(p, TIMES, {
         printf("%s\t\t", TIMES_NAMES[p]);
         print_time(pt.times[p], opts.time_format);
@@ -205,18 +237,28 @@ int main(int argc, char **argv) {
           printf("\n");
         }
       });
+    printf("</tool>\n");
 
   } else {
-    rem = remaining_to(pt.times, time_now, real_nxt);
-    if (rem == 0) {
-      printf("%s", TIMES_NAMES[real_nxt]);
-    } else if (IS_IQAMA(real_nxt)) {
-      print_time(rem, TIME_24);
-      printf("i");
-    } else {
-      print_time(rem, TIME_24);
-    }
-    printf("\n");
+    FOR_PRAYER(p, TIMES, {
+        printf("%s\t\t", TIMES_NAMES[p]);
+        print_time(pt.times[p], opts.time_format);
+        printf("\n");
+        if (p == nxt) {
+          rem = remaining_to(pt.times, time_now, real_nxt);
+          printf("    ");
+          if (rem == 0) {
+            printf("time for %s", TIMES_NAMES[real_nxt]);
+          } else if (IS_IQAMA(real_nxt)) {
+            print_time(rem, TIME_24);
+            printf(" to iqama");
+          } else {
+            print_time(rem, TIME_24);
+            printf(" remaining");
+          }
+          printf("\n");
+        }
+      });
   }
 
   return 0;

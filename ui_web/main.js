@@ -1,4 +1,4 @@
-import HijrahDate from "hijrah-date";
+const HijrahDate = require("hijrah-date");
 
 import {
     pt_init, prayertimes, next_time,
@@ -11,40 +11,30 @@ import {
 } from "./configs";
 
 import {
-    $div, $span, $table, $tr, $td, $br, $hr,
-    $input, $select, $option, $get
+    strings_map
+} from "./strings";
+let strings; // updated in main
+
+import {
+    $div, $span, $table, $tr, $td, $br, $hr, $p, $h3,
+    $input, $select, $option, $get, $button
 } from "elemobj";
+
+// [place, place_ar, gmt_offset, lat, lng]
+const places = require("./places.json");
 
 import {ripple_apply} from "./ripple";
 
 import "./style.css";
 import "./ripple.css";
 
-const time_name = i =>
-      (config.lang == "ar" ?
-       {
-           fajr: "الفجر",
-           sunrise: "الشروق",
-           duhr: "الظهر",
-           asr: "العصر",
-           magrib: "المغرب",
-           isha: "العشاء"
-       } : {
-           fajr: "Fajr",
-           sunrise: "Sunrise",
-           duhr: "Duhr",
-           asr: "Asr",
-           magrib: "Magrib",
-           isha: "Isha"
-       })[i];
+const isdroid = typeof droid != "undefined";
+
+// time utils =====
 
 function remaining_time_human(time, time_name) {
     if (time == 0) {
-        if (config.lang == "ar") {
-            return "حان وقت " + time_name;
-        } else {
-            return "it's time for " + time_name;
-        }
+        return strings.time_for + time_name;
     }
 
     let passed = false;
@@ -132,11 +122,7 @@ function remaining_time_human(time, time_name) {
     }
 
     if (time_name.endsWith("iqama")) {
-        if (config.lang == "ar") {
-            res += "  للإقامة";
-        } else {
-            res += " to iqama";
-        }
+        res += " " + strings.to_iqama;
     }
 
     return res;
@@ -148,9 +134,9 @@ function time_human(date) {
 
     let suffix;
     if (config.time12h) {
-        suffix = config.lang == "ar" ? "ص" : "AM";
+        suffix = strings.am;
         if (h > 12) {
-            suffix = config.lang == "ar" ? "م" : "PM";
+            suffix = strings.pm;
             h -= 12;
         }
     }
@@ -167,6 +153,7 @@ function time_human(date) {
 // main items =====
 
 function prayer_cards(times) {
+    times = times || prayertimes(new Date(), config);
     let cards = {};
     let really_active;
     let real_next, next;
@@ -212,7 +199,7 @@ function prayer_cards(times) {
         }
 
         update() {
-            this.elem_name.innerText = time_name(this.i);
+            this.elem_name.innerText = strings[this.i];
             this.elem_time.innerText = time_human(this.times[this.i]);
             if (this.active) {
                 let i = this.i == next ? real_next : this.i;
@@ -318,17 +305,34 @@ function calendar() {
                         let h = new HijrahDate(hdate.getFullYear(), hdate.getMonth(),
                                                event.target.innerText);
                         let g = h.toGregorian();
-                        let title = h.format("dd MMMM yyyy", config.lang) + "\n" +
+                        let title = h.format("dd MMMM yyyy", config.lang) +
+                            "<br>" +
                             g.getDate() + " " +
                             g.toLocaleString(config.lang,
                                              { month: 'long' }) + " " +
                             g.getFullYear();
-                        let times = prayertimes(g);
-                        let msg = "";
+                        let times = prayertimes(g, config);
+
+                        let times_table = [];
                         for (let i of TIMES_NAMES) {
-                            msg += `${time_name(i)}: ${time_human(times[i])}\n`;
+                            times_table.push($tr([
+                                $td({style: {width: "50%"}},
+                                    strings[i]), $td(time_human(times[i]))
+                            ]));
                         }
-                        dialog(title, msg);
+
+                        modal_show($div({
+                            style: {textAlign: "center"}
+                        }, [
+                            $h3(title),
+                            $hr(),
+                            $table({
+                                style: {
+                                    margin: "auto",
+                                    width:  "100%"
+                                }
+                            }, times_table)
+                        ]));
                     }
                 }));
                 if (hdate_tmp.getFullYear() == now.getFullYear() &&
@@ -386,15 +390,6 @@ function calendar() {
 }
 
 function qibla() {
-    let str_qibla, str_from_north;
-    if (config.lang == "ar") {
-        str_qibla = "القبلة";
-        str_from_north = "القبلة على زاوية %s° من الشمال";
-    } else {
-        str_qibla = "QIBLA";
-        str_from_north = "Qibla is %s° from north";
-    }
-
     let qibla_text;
     let qibla_direction;
     let north_direction;
@@ -419,16 +414,16 @@ function qibla() {
 
             $div({
                 className: "big-circle",
-                content: `<span class="big-circle-text">${str_qibla}</span>`
+                content: `<span class="big-circle-text">${strings.qibla}</span>`
             })
         ]
     });
 
     function qibla_from_north(lat2, lng2) {
-        let lng1 = 21.4225, lat1 = 39.826181; // Kabba location
-        let lngDelta = (lng2 - lng1);
-        let y = Math.sin(lngDelta) * Math.cos(lat2);
-        let x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lngDelta);
+        const lng1 = 21.4225, lat1 = 39.826181; // Kabba location
+        const lngDelta = (lng2 - lng1);
+        const y = Math.sin(lngDelta) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lngDelta);
         let res = (Math.atan2(y, x) * 180) / Math.PI;
         if (res < 0) {
             res += 360;
@@ -443,34 +438,110 @@ function qibla() {
         qibla_direction.style.transform = `rotate(${dir + from_north}deg)`;
     }
 
-    globalThis.set_north = set_north;
+    globalThis.set_north = set_north; // for droid
     set_north(0);
-    qibla_text.innerText = str_from_north.replace("%s", Math.round(from_north));
+    qibla_text.innerText = strings.qibla_north.replace("%s", Math.round(from_north));
 
     return elem;
 }
 
-function config_ui() {
-
-    function cfg_list(key, a, callback) {
-        if (!Array.isArray(a)) {
-            a = Object.keys(a);
+function modal() {
+    // styles in css
+    return $div({
+        id: "modal",
+        className: "modal",
+        onclick: e => {
+            if (e.target == e.currentTarget) {
+                modal_hide();
+            }
         }
-        let selected = a.indexOf(config[key]);
+    }, [
+        $div({
+            id: "modal-content",
+            className: "card modal-content"
+        }),
+
+        /*$button({
+          className: "button-card",
+          style: {float: "right"},
+          onclick: modal_hide
+          }, strings.close)*/
+    ]);
+}
+
+function modal_show(content, onhide) {
+    const m = $get("#modal");
+    const mcon = $get("#modal-content");
+
+    mcon.innerHTML = "";
+    mcon.appendChild($div(content));
+    Object.assign(mcon, {
+        dir: config.lang == "ar" ? "rtl" : "ltr",
+        style: {
+            textAlign: config.lang == "ar" ? "right" : "left"
+        }
+    });
+
+    m.onhide = onhide;
+    m.style.display = "block";
+    document.body.style.overflow = "hidden";
+}
+
+function modal_hide() {
+    const m = $get("#modal");
+    const mcon = $get("#modal-content");
+
+    if (m.onhide) m.onhide();
+    m.onhide = undefined;
+    m.style.display = "none";
+    mcon.innerHTML = "";
+    document.body.style.overflow = "auto";
+}
+
+function place_button() {
+    return $div({
+        className: "button-card ripple",
+        content: strings.find_place,
+        onclick: e => place_search_show()
+    });
+}
+
+function settings_button() {
+    return $div({
+        className: "button-card ripple",
+        content: strings.settings,
+        onclick: e => settings_show()
+    });
+}
+
+function settings_show() {
+    modal_show(settings(), set_ui);
+}
+
+function settings() {
+
+    function cfg_list(key, a_val, a, callback) {
+        if (!Array.isArray(a_val)) {
+            a_val = Object.keys(a_val);
+        }
+        if (!a) {
+            a = a_val;
+        }
+
+        let selected = a_val.indexOf(config[key]);
         return $td($select({
             onchange: e => {
                 config[key] = e.target.value;
                 save_config();
                 if (callback) callback(e);
-                main();
             }
         }, (() => {
             let res = [];
             for (let i in a) {
                 if (i == selected) {
-                    res.push($option({selected: "selected"}, a[i]));
+                    res.push($option({value: a_val[i], selected: "selected"}, a[i]));
                 } else {
-                    res.push($option(a[i]));
+                    res.push($option({value: a_val[i]}, a[i]));
                 }
             }
             return res;
@@ -491,81 +562,174 @@ function config_ui() {
     const $line = () => $tr($td({colSpan: 2}, $hr()));
 
     return [
-        $div({
-            className: "button-card ripple",
-            content: config.lang == "ar" ? "الإعدادات" : "Settings",
-            onclick: e => {
-                let elem = $get("#config");
-                if (elem.style.display == "none") {
-                    elem.style.display = "block";
-                    window.scrollTo(0, document.body.scrollHeight);
-                } else {
-                    elem.style.display = "none";
-                }
-            }
-        }),
-
         $table({
-            id: "config",
-            style: {display: "none", width: "100%"}
+            style: {margin: "auto"}
         }, [
+            $tr([$td(strings.language), cfg_list("lang",
+                                                 ["ar", "en"],
+                                                 ["عربي", "English"],
+                                                 () => {
+                                                     set_ui();
+                                                     modal_hide();
+                                                 })]),
+
+            $tr([$td(strings.theme), cfg_list("theme",
+                                              ["auto", "dark", "light"],
+                                              strings.list_themes,
+                                              update_theme)]),
+
             $line(),
 
-            $tr([$td("Language"), cfg_list("lang", ["ar", "en"])]),
-            $tr([$td("Theme"), cfg_list("theme", ["auto", "dark", "light"], update_theme)]),
+            $tr([$td(strings.find_place), $td($button({
+                style: {width: "100%"},
+                onclick: e => modal_show(place_search())
+            }, strings.search))]),
+            $tr([$td(strings.lat),      cfg_input("lat")]),
+            $tr([$td(strings.lng),      cfg_input("lng")]),
+            $tr([$td(strings.timezone), cfg_input("time_zone")]),
 
             $line(),
 
-            $tr([$td("Latitude"),  cfg_input("lat")]),
-            $tr([$td("Longitude"), cfg_input("lng")]),
-            $tr([$td("Timezone"),  cfg_input("time_zone")]),
+            $tr([$td(strings.calc_method), cfg_list("calc_method",
+                                                    calc_methods,
+                                                    strings.list_calc_methods,
+                                                    set_ui)]),
 
-            $line(),
+            $tr([$td(strings.asr_method), cfg_list("asr_juristic",
+                                                   asr_methods,
+                                                   strings.list_asr_methods,
+                                                   set_ui)]),
 
-            $tr([$td("Calculation method"),   cfg_list("calc_method",      calc_methods)]),
-            $tr([$td("Asr method"),           cfg_list("asr_juristic",     asr_methods)]),
-            $tr([$td("High latitude method"), cfg_list("adjust_high_lats", high_lat_methods)])
+            $tr([$td(strings.high_lat_method), cfg_list("adjust_high_lats",
+                                                        high_lat_methods,
+                                                        strings.list_high_lat_methods,
+                                                        set_ui)])
         ])
     ];
 }
 
-function deadbeef() {
-    return $div({
-        className: "button-card ripple",
-        content: "CLICK ME",
-        onclick: () => dialog("deadbeef")
-    });
-}
+function set_place_obj(p) {
+    config.time_zone = p[2];
+    config.lat       = p[3];
+    config.lng       = p[4];
 
-function special_case() {
-    function $thing(txt, cfg) {
-        return $div({
-            className: "button-card ripple",
-            content: txt,
-            onclick: () => {
-                Object.assign(config, cfg);
-                save_config();
-                main();
-            }
-        });
+    switch (p[0]) {
+    case "Cairo":   config.calc_method = "egypt";          break;
+    case "Amman":   config.calc_method = "jordan";         break;
+    case "Karachi": config.calc_method = "karachi";        break;
+    case "Doha":    config.calc_method = "qatar";          break;
+    case "Kuwait":  config.calc_method = "kuwait";         break;
+    case "London":  config.calc_method = "england_london"; break;
+    case "Mecca":   config.calc_method = "makkah";         break;
+    default:        config.calc_method = "makkah";         break;
     }
 
-    return [
-        $thing(config.lang == "ar" ? "الدوحة" : "Doha", {
-            calc_method:  "qatar",
-            asr_juristic: "shafii",
-            lat:           25.411720,
-            lng:           51.503878,
-            time_zone:     3.0
+    let hist = config.history;
+    hist = hist ? hist.split("\n") : [];
+    hist.unshift(p[0]);
+    hist = hist.slice(0, 5);
+    hist = hist.filter((v, i, a) => a.indexOf(v) === i);
+    config.history = hist.join("\n");
+
+    config.first_welcome = false;
+    save_config();
+    set_ui();
+}
+
+function place_name_to_obj(place) {
+    for (let p of places) {
+        if (place == p[0]) {
+            return p;
+        }
+    }
+    return undefined;
+}
+
+function set_place(place) {
+    set_place_obj(place_name_to_obj(place));
+}
+
+function place_search_show() {
+    modal_show(place_search());
+    sleep(500).then(() =>
+        $get("#place-searchbar").focus());
+}
+
+function place_search() {
+    return $div([
+        $input({
+            id: "place-searchbar",
+            type: "text",
+            placeholder: strings.find_place,
+            style: {width: "97%"},
+            autofocus: true,
+            tabIndex: 0,
+
+            oninput: e => {
+                const results_div = $get("#place-results");
+                let results = [];
+                const input = e.target.value.toLowerCase();
+                results_div.innerHTML = "";
+                if (input.length > 0) {
+                    const results = [];
+                    for (let p of places) {
+                        if (input == p[0].slice(0, input.length)
+                            .toLowerCase() ||
+                            input == p[1].slice(0, input.length)) {
+                            results.push(p);
+                        }
+                    }
+                    for (let p of places) {
+                        if ((p[0].toLowerCase().includes(input) ||
+                             p[1].includes(input)) &&
+                            !results.includes(p)) {
+                            results.push(p);
+                        }
+                    }
+                    const lang_index = config.lang == "ar" ? 1 : 0;
+                    for (let i = 0; i < results.length && i < 5; i++) {
+                        results_div.appendChild($div({
+                            onclick: e => {
+                                set_place(results[i][0]);
+                                modal_hide();
+                            },
+                            style: {width: "100%"}
+                        }, results[i][lang_index]));
+                        results_div.appendChild($hr());
+                    }
+                }
+            },
+
+            onkeyup: e => {
+                if (e.code == "Enter") {
+                    $get("#place-results").children[0].click();
+                }
+            }
         }),
-        $thing(config.lang == "ar" ? "بغداد" : "Baghdad", {
-            calc_method:  "makkah",
-            asr_juristic: "shafii",
-            lat:           33.3118944,
-            lng:           44.2158181,
-            time_zone:     3.0
+
+        $div({
+            id: "place-results",
+            style: {marginTop: "10px"}
         })
-    ];
+    ]);
+}
+
+function history() {
+    let res = [];
+    let hist = config.history;
+
+    if (hist) {
+        hist = hist.split("\n");
+        for (let place of hist) {
+            let p = place_name_to_obj(place);
+            res.push($div({
+                className: "button-card ripple",
+                content: p[config.lang == "ar" ? 1 : 0],
+                onclick: () => set_place(p[0])
+            }));
+        }
+    }
+    return $div(res);
 }
 
 // ui utils =====
@@ -574,7 +738,7 @@ function update_theme() {
     let light = false;
 
     if (config.theme == "auto") {
-        if (typeof droid != "undefined") {
+        if (isdroid) {
             light = droid.getTheme() == "light";
         } else {
             light = window.matchMedia &&
@@ -594,7 +758,7 @@ function update_theme() {
 }
 
 function theme_droid() {
-    if (typeof droid != "undefined") {
+    if (isdroid) {
         let s = getComputedStyle(document.body);
         let bg = s.getPropertyValue("--window-background").trim();
         let fg = s.getPropertyValue("--base-foreground").trim();
@@ -605,7 +769,7 @@ function theme_droid() {
 
 function dialog(title, str) {
     if (!str) str = "";
-    if (typeof droid != "undefined") {
+    if (isdroid) {
         droid.dialog(title, str);
     } else {
         alert(title  + "\n\n" + str);
@@ -613,6 +777,10 @@ function dialog(title, str) {
 }
 
 // utils =====
+
+async function sleep(time) {
+    return new Promise(resolve => setTimeout(resolve, time));
+}
 
 function run_at(hh, mm, callback) {
     // https://stackoverflow.com/a/25492756/3825872
@@ -637,30 +805,81 @@ function run_at(hh, mm, callback) {
 
 // main =====
 
+function set_strings() {
+    if (config.lang in strings_map) {
+        strings = strings_map[config.lang];
+    } else {
+        strings = strings_map.en;
+    }
+
+    if (isdroid) {
+        droid.setStrings(JSON.stringify(strings));
+    }
+}
+
+function set_ui() {
+    set_strings();
+
+    const views = [
+        prayer_cards(),
+        calendar(),
+        qibla(),
+        history(),
+        place_button(),
+        settings_button()
+    ];
+
+    const cont = $get("#main-view-items");
+    cont.innerHTML = "";
+    for (let e of views)
+        cont.appendChild(e);
+    update_theme();
+    try { ripple_apply(); } catch (e) {}
+}
+
 async function main() {
     load_config();
+
     await pt_init();
-    const times = prayertimes(new Date(), config);
 
     document.body.innerHTML = "";
     document.body.appendChild($div({className: "main-container"}, [
-        prayer_cards(times),
-        calendar(),
-        qibla(),
-        ...special_case(),
-        ...config_ui()
+        $div({id: "main-view-items"}),
+        modal()
     ]));
+    modal_hide();
+    set_ui();
 
-    update_theme();
     if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: light)')
             .addEventListener('change', update_theme);
     }
 
-    // re-run at 12:00 am
-    run_at(0, 0, main);
+    // update at 12:00 am
+    run_at(0, 0, set_ui);
 
-    try { ripple_apply(); } catch (e) {}
+    window.addEventListener("keyup", e => {
+        if ($get("#modal").style.display != "none") {
+            switch (e.code) {
+            case "Escape": modal_hide(); break;
+            }
+        } else {
+            switch (e.code) {
+            case "KeyF": place_search_show(); break;
+            case "KeyS": settings_show();     break;
+            }
+        }
+    });
+
+    if (config.first_welcome) {
+        place_search_show();
+        config.first_welcome = false;
+    }
+
+    // for droid
+    Object.assign(globalThis, {
+        place_search_show, settings_show, config
+    });
 }
 
 main();

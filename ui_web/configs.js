@@ -7,9 +7,11 @@ const KEY = "prayer-config";
 
 export let config = {
     first_time: true,
+    first_welcome: true,
     lang: "en",
     time12h: true,
     theme: "auto",
+    history: "",
 
     calc_method: "qatar",
     asr_juristic: "shafii",

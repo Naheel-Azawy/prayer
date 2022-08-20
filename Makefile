@@ -1,10 +1,11 @@
-PREFIX = /usr/bin
+PREFIX = /usr/local
 
-HDR_CORE = core/prayertimes.h
-SRC_CORE = core/prayertimes.c
-SRC_CLI  = ui_cli/main.c
-SRC_INO  = ui_ino/prayer.ino
-SRC_WEB  = ui_web/index.html ui_web/main.js ui_web/pt_iface.js ui_web/ripple.css ui_web/ripple.js ui_web/style.css
+HDR_CORE  = core/prayertimes.h
+SRC_CORE  = core/prayertimes.c
+SRC_CLI   = ui_cli/main.c
+SRC_INO   = ui_ino/prayer.ino
+SRC_WEB   = ui_web/index.html ui_web/main.js ui_web/pt_iface.js ui_web/ripple.css ui_web/ripple.js ui_web/style.css
+SRC_DROID = $(shell find ui_android/Prayer/app -type f -name '*.java' -or -name '*.xml')
 
 WASM_FUNCS="[ \
 '_pt_full',   \
@@ -44,25 +45,33 @@ ui_web/node_modules:
 
 build/web/index.html: ui_web/node_modules build/prayertimes.wasm.js $(SRC_WEB)
 	cd ui_web && npm run build:prod
+	mkdir -p ui_android/Prayer/app/src/main/assets
 	rm -rf ui_android/Prayer/app/src/main/assets/*
 	cp build/web/* ui_android/Prayer/app/src/main/assets/
 
-build/prayer.apk:
+web-watch: ui_web/node_modules build/prayertimes.wasm.js $(SRC_WEB)
+	cd ui_web && npm run watch
+
+build/prayer.apk: build/web/index.html $(SRC_DROID)
+	mkdir -p ui_android/Prayer/app/src/main/assets
+	rm -rf ui_android/Prayer/app/src/main/assets/*
+	cp build/web/* ui_android/Prayer/app/src/main/assets/
 	cd ui_android/Prayer && ./gradlew assembleDebug
 	cp ui_android/Prayer/app/build/outputs/apk/debug/app-debug.apk build/prayer.apk
 
 droid-install: build/prayer.apk
 	adb install -r build/prayer.apk
+	adb shell am start -n xyz.naheel.prayer/.MainActivity
 
-install:
-	mkdir -p $(DESTDIR)$(PREFIX)
-	cp -f build/prayer $(DESTDIR)$(PREFIX)
+install: all
+	mkdir -p $(PREFIX)/bin
+	cp -f build/prayer $(PREFIX)/bin/
 
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/prayer
+	rm -f $(PREFIX)/bin/prayer
 
 clean:
 	rm -r build
-	rm -r ui_web/node_modules ui_web/package-lock.json
+#	rm -r ui_web/node_modules ui_web/package-lock.json
 
-.PHONY: install uninstall clean
+.PHONY: all ino web droid droid-install install uninstall clean

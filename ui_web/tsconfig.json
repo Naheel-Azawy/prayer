@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "lib": ["es2017", "dom"],
+        "target": "es6",
+        "watch": false,
+        "sourceMap": true,
+        "allowJs": true,
+        
+        //"strict": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "alwaysStrict": true,
+        "strictBindCallApply": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        //"strictPropertyInitialization": true,
+    }
+}

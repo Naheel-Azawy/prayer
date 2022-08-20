@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId "xyz.naheel.prayer"
-        minSdk 21
+        minSdk 15
         targetSdk 30
         versionCode 1
         versionName "1.0"
